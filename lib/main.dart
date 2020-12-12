@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'home.dart';
-import 'dart:math';
+/*import 'dart:math';*/
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 void main() => runApp(MyApp());
 
@@ -10,11 +12,11 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  var _random = new Random();
-  var _r = 0;
+  var _r = '';
+  /*var _random = new Random();
   void generateRandomNumber() {
     _r = _random.nextInt(100);
-  }
+  }*/
 
   @override
   Widget build(BuildContext context) {
@@ -40,8 +42,17 @@ class _MyAppState extends State<MyApp> {
                           color: Colors.white,
                           fontSize: 20),
                     ),
-                    onPressed: () {
-                      generateRandomNumber();
+                    onPressed: () async {
+                      /*generateRandomNumber();*/
+
+                      final response = await http.get('url');
+
+                      final decoded = json.decode(response.body);
+
+                      setState(() {
+                        _r = decoded;
+                      });
+
                       Navigator.push(
                         context,
                         MaterialPageRoute(builder: (context) => Proceed(r: _r)),
@@ -53,7 +64,7 @@ class _MyAppState extends State<MyApp> {
 }
 
 class Proceed extends StatefulWidget {
-  final int r;
+  final String r;
   Proceed({@required this.r});
 
   @override
@@ -78,18 +89,6 @@ class _ProceedState extends State<Proceed> {
                   context, MaterialPageRoute(builder: (context) => Home()));
             },
           ),
-          /*Align(
-            alignment: Alignment.bottomRight,
-            child: ElevatedButton(
-              child: Text("Proceed"),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => Home()),
-                );
-              },
-            ),
-          ),*/
         ),
       ),
     );
