@@ -45,7 +45,11 @@ class _MyAppState extends State<MyApp> {
                     onPressed: () async {
                       /*generateRandomNumber();*/
 
+<<<<<<< HEAD
                       final response = await http.get('http://10.0.2.2:5000/id');
+=======
+                      final response = await http.get("http://127.0.0.1:5000/id");
+>>>>>>> 4dcfa36c69131690be561fe31c4429fa36663fc6
 
                       final decoded = json.decode(response.body);
 
