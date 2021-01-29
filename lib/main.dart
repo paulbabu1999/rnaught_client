@@ -12,7 +12,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  var _r = '';
+  var _r = 0;
   /*var _random = new Random();
   void generateRandomNumber() {
     _r = _random.nextInt(100);
@@ -45,12 +45,12 @@ class _MyAppState extends State<MyApp> {
                     onPressed: () async {
                       /*generateRandomNumber();*/
 
-                      final response = await http.get('url');
+                      final response = await http.get('http://10.0.2.2:5000/id');
 
                       final decoded = json.decode(response.body);
 
                       setState(() {
-                        _r = decoded;
+                        _r = decoded['id'];
                       });
 
                       Navigator.push(
@@ -64,7 +64,7 @@ class _MyAppState extends State<MyApp> {
 }
 
 class Proceed extends StatefulWidget {
-  final String r;
+  final int r;
   Proceed({@required this.r});
 
   @override
