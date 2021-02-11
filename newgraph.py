@@ -41,6 +41,7 @@ def new_contact():
                "MATCH (id2:Person {id2: $id2}) "
                "MERGE (id1)<-[:CAME IN CONTACT]->(id2)",
                id1=id1, id2=id2)
+    tx.commit()
     print(data_recieved)#test
     return 200
 @app.route("/probability",methods=['POST']) 
@@ -50,6 +51,11 @@ def check_probability():
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     id=data_recieved['id']
     #val=db.get_probability(id)
+    graph= Graph()
+    tx=graph.cypher.begin()
+    tx.run("MATCH(id:Person)"
+           "SET id.probablity=\' " + probability +"\'")
+    tx.commit()    
     print("id=",id)#test
     return jsonify({"probability":val})
 @app.route("/positive",methods=['POST'])
@@ -62,6 +68,7 @@ def is_positive:
     tx=graph.cypher.begin()
     tx.run("MATCH ({id : $id})-[*]-(connected)"
            "RETURN connected")
+    tx.commit()
     #db.is_positive(id) 
     return 201
 
