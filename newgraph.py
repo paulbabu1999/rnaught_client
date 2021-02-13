@@ -7,8 +7,8 @@ app=Flask(__name__)
 people={}
 id_new=0
 driver = GraphDatabase.driver(
-  "bolt://35.170.67.14:7687",
-  auth=basic_auth("neo4j", "lashes-instruction-gasoline"))
+  "bolt://3.92.180.117:7687",
+  auth=basic_auth("neo4j", "books-rack-leads"))
 @app.route("/id",methods=['GET'])
 def new_id():
     global id_new
@@ -51,6 +51,7 @@ def check_probability():
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     id=data_recieved['id']
     #val=db.get_probability(id)
+    probability=find_probablity(3,60)
     graph= Graph()
     tx=graph.cypher.begin()
     tx.run("MATCH(id:Person)"
