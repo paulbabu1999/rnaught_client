@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'home.dart';
+import 'home1.dart';
+//import 'home.dart';
 /*import 'dart:math';*/
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+//import 'package:shared_preferences/shared_preferences.dart';
+
 
 void main() => runApp(MyApp());
 
@@ -18,6 +21,10 @@ class _MyAppState extends State<MyApp> {
     _r = _random.nextInt(100);
   }*/
 
+  /*void initState() { 
+      super.initState();
+      checkId();  
+  } */ 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -45,17 +52,16 @@ class _MyAppState extends State<MyApp> {
                     onPressed: () async {
                       /*generateRandomNumber();*/
 
-<<<<<<< HEAD
-                      final response = await http.get('http://10.0.2.2:5000/id');
-=======
-                      final response = await http.get("http://127.0.0.1:5000/id");
->>>>>>> 4dcfa36c69131690be561fe31c4429fa36663fc6
+                      final response = await http.get('http://192.168.1.12:5000/id');
 
                       final decoded = json.decode(response.body);
 
-                      setState(() {
+                      setState(() {                      
                         _r = decoded['id'];
                       });
+
+                      /*SharedPreferences prefs = await SharedPreferences.getInstance();
+                      prefs.setInt('uid', decoded['id']);*/
 
                       Navigator.push(
                         context,
@@ -65,6 +71,14 @@ class _MyAppState extends State<MyApp> {
                   ),
                 ))));
   }
+  /*void checkId() async{
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      int uid = prefs.getInt('uid');
+      if(uid != null){
+        Navigator.push(
+                  context, MaterialPageRoute(builder: (context) => Home()));
+      }
+  }*/
 }
 
 class Proceed extends StatefulWidget {
@@ -90,7 +104,7 @@ class _ProceedState extends State<Proceed> {
             child: Text("Proceed"),
             onPressed: () {
               Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => Home()));
+                  context, MaterialPageRoute(builder: (context) => Home1(r: widget.r)));
             },
           ),
         ),

@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'trace.dart';
 
 class Home extends StatefulWidget {
+  final int r;
+  Home({@required this.r});
   @override
   _HomeState createState() => _HomeState();
 }
@@ -24,19 +29,16 @@ class _HomeState extends State<Home> {
           ),
         ),
         body: TabBarView(
-          children: choices.map((Choice choice) {
-            return Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: ChoicePage(
-                choice: choice,
-              ),
-            );
-          }).toList(),
+          children: [
+            HomeTab(r: widget.r),
+            VerificationTab(r: widget.r),
+          ],
         ),
       ),
     );
   }
 }
+
 
 class Choice {
   final String title;
@@ -49,32 +51,168 @@ const List<Choice> choices = <Choice>[
   Choice(title: 'VERIFICATION', icon: Icons.local_hospital),
 ];
 
-class ChoicePage extends StatelessWidget {
-  const ChoicePage({Key key, this.choice}) : super(key: key);
-  final Choice choice;
+
+
+
+
+
+class HomeTab extends StatelessWidget {
+  final int r;
+  HomeTab({
+    Key key,
+    @required this.r
+  }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final TextStyle textStyle = Theme.of(context).textTheme.headline4;
-    return Card(
-      color: Colors.white,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: <Widget>[
-            Icon(
-              choice.icon,
-              size: 250.0,
-              color: textStyle.color,
-            ),
-            Text(
-              choice.title,
-              style: textStyle,
-            ),
-          ],
+    return Container(  
+      padding: const EdgeInsets.all(20.0),  
+      child:Center(
+        child: RaisedButton( 
+          highlightElevation: 0.0,
+          splashColor: Colors.white,
+          highlightColor: Colors.blue,
+          elevation: 0.0,
+          shape: RoundedRectangleBorder(
+            borderRadius: new BorderRadius.circular(30.0)), 
+          child: Text('Check Percentage'),  
+          onPressed: () async {
+            final response = await http.post(
+                  'http://192.168.1.12:5000/probability',
+                    body: json.encode({
+                      'id': r,
+                    }),
+                    ); 
+            final decoded = json.decode(response.body);
+            final val = decoded["probability"];
+
+            showAlertDialog(context, val: val);  
+          },  
         ),
       ),
+    );  
+  }  
+}  
+  
+showAlertDialog(BuildContext context, {int val = 0, int stcode = 0, int r}) {  
+  // Create button  
+  Widget okButton = FlatButton(  
+    child: Text("OK"),  
+    onPressed: () async {
+      Navigator.push(context, MaterialPageRoute(builder: (context) => Trace(r: r)));
+    }  
+  );  
+  
+  // Create AlertDialog  
+  AlertDialog alert1 = AlertDialog(  
+    title: Text("Covid Infection Probability"),  
+    content: Text("You have $val% chance of having covid."),  
+    /*actions: [  
+      okButton,  
+    ],*/  
+  ); 
+
+  AlertDialog alert2 = AlertDialog(  
+    title: Text("Covid Confirmation"),  
+    content: Text("You have been confirmed positive by doctor. "),  
+    actions: [  
+      okButton,  
+    ],
+  );
+
+  AlertDialog alert3 = AlertDialog(  
+    title: Text("Covid Confirmation"),  
+    content: Text("Error!!!\nTry Again."),  
+    /*actions: [  
+      okButton,  
+    ],*/ 
+  );     
+  
+  // show the dialog  
+  showDialog(  
+    context: context,  
+    builder: (BuildContext context) {
+      if (stcode == 0) {
+        return alert1;
+      } else if (stcode == 201) {
+          return alert2;
+      } else {
+          return alert3;
+
+      }
+    },  
+  );  
+}
+
+
+
+class VerificationTab extends StatelessWidget {
+  final int r;
+  VerificationTab({
+    Key key,
+    @required this.r
+  }) : super(key: key);
+
+  final skey = new TextEditingController();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: SingleChildScrollView(
+        child: Column(
+          children: [
+            TextField(
+              controller: skey,
+              decoration: InputDecoration(
+                  hintText: "Enter secret key",
+                  labelText: "For doctors only",
+                  labelStyle: TextStyle(fontSize: 24, color: Colors.black),
+                  border: InputBorder.none,
+                  fillColor: Colors.black12,
+                  filled: true),
+              obscureText: false,
+              maxLength: 20,
+            ),
+
+            SizedBox(
+              height: 16,
+            ),
+
+            RaisedButton(
+              highlightElevation: 0.0,
+              splashColor: Colors.white,
+              highlightColor: Colors.blue,
+              elevation: 0.0,
+              color: Colors.blue,
+              shape: RoundedRectangleBorder(
+                borderRadius: new BorderRadius.circular(30.0)),
+              child: Text(
+                "Confirm",
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 20),
+              ),
+
+              onPressed: () async {
+                final response = await http.post(
+                  'http://192.168.1.12:5000/positive',
+                    body: json.encode({
+                      'id': r,
+                      'skey': skey.text,
+                    }),
+                    );
+                final decoded = json.decode(response.body);
+
+                showAlertDialog(context, stcode: decoded, r: r);
+
+              }
+    
+              )
+            ],
+          ),
+        ),
     );
   }
 }
