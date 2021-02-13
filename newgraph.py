@@ -1,14 +1,12 @@
 from flask import Flask,request,jsonify
-from neo4j import GraphDatabase, basic_auth
+from neo4j import GraphDatabase
 import py2neo
 import json
 from py2neo import Graph
 app=Flask(__name__)
 people={}
 id_new=0
-driver = GraphDatabase.driver(
-  "bolt://3.92.180.117:7687",
-  auth=basic_auth("neo4j", "books-rack-leads"))
+driver = GraphDatabase.driver("bolt://3.92.180.117:7687",auth=("neo4j", "books-rack-leads"))
 @app.route("/id",methods=['GET'])
 def new_id():
     global id_new
@@ -51,11 +49,9 @@ def check_probability():
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     id=data_recieved['id']
     #val=db.get_probability(id)
-    probability=find_probablity(3,60)
     graph= Graph()
     tx=graph.cypher.begin()
-    tx.run("MATCH(id:Person)"
-           "SET id.probablity=\' " + probability +"\'")
+    probability=tx.run("MATCH(id:Person) RETURN probablity(id)")
     tx.commit()    
     print("id=",id)#test
     return jsonify({"probability":val})
@@ -67,8 +63,11 @@ def is_positive:
     print("id=",id)#test
     graph= Graph()
     tx=graph.cypher.begin()
+    tx.run("MATCH (a:Person) WHERE id(a) = $id SET a.conditon = positive")
+    tx.commit()
+    probablity=find_probablity(1,60)
     tx.run("MATCH ({id : $id})-[*]-(connected)"
-           "RETURN connected")
+           "SET id.connected =$probablity",probablity=probablity)
     tx.commit()
     #db.is_positive(id) 
     return 201
