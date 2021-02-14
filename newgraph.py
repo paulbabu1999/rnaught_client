@@ -1,12 +1,14 @@
 from flask import Flask,request,jsonify
-from neo4j import GraphDatabase
+from neo4j import GraphDatabase,basic_auth
 import py2neo
 import json
 from py2neo import Graph
 app=Flask(__name__)
 people={}
 id_new=0
-driver = GraphDatabase.driver("bolt://3.92.180.117:7687",auth=("neo4j", "books-rack-leads"))
+driver = GraphDatabase.driver(
+  "bolt://3.92.180.117:7687",
+  auth=basic_auth("neo4j", "books-rack-leads"))
 @app.route("/id",methods=['GET'])
 def new_id():
     global id_new
