@@ -28,6 +28,7 @@ def add_newperson():
      tx=graph.cypher.begin()    
      tx.append("CREATE (:Person {id: $id},{age: $age},{gender: $gender})", id=id, age=age, gender=gender)
      tx.commit()
+    driver.close()  
     print(data_recieved)#test
     return jsonify({"id":id})
 @app.route("/new_contact",methods=['POST'])
@@ -44,6 +45,7 @@ def new_contact():
                "MERGE (id1)<-[:CAME IN CONTACT]->(id2)",
                id1=id1, id2=id2)
      tx.commit()
+    driver.close()  
     print(data_recieved)#test
     return 200
 @app.route("/probability",methods=['POST']) 
@@ -57,7 +59,8 @@ def check_probability():
      graph= Graph()
      tx=graph.cypher.begin()
      probability=tx.run("MATCH(id : $id) RETURN probablity(id)")
-     tx.commit()    
+     tx.commit()
+    driver.close()  
     print("id=",id)#test
     return jsonify({"probability":val})
 @app.route("/positive",methods=['POST'])
@@ -75,6 +78,7 @@ def is_positive:
      tx.run("MATCH ({id : $id})-[*]-(connected)"
            "SET connected.probability=$probability",probablity=probablity)
      tx.commit()
+    driver.close()
     #db.is_positive(id) 
     return 201
 
