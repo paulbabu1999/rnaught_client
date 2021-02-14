@@ -26,7 +26,7 @@ def add_newperson():
     with driver.session(database="neo4j") as session:
      graph= Graph()
      tx=graph.cypher.begin()    
-     tx.append("CREATE (:Person {id: $id},{age: $age},{gender: $gender})", id=id, age=age, gender=gender)
+     tx.append("CREATE (Person {id: $id},{age: $age},{gender: $gender})", id=id, age=age, gender=gender)
      tx.commit()
     driver.close()  
     print(data_recieved)#test
