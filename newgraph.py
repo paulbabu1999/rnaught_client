@@ -51,7 +51,7 @@ def check_probability():
     #val=db.get_probability(id)
     graph= Graph()
     tx=graph.cypher.begin()
-    probability=tx.run("MATCH(id:Person) RETURN probablity(id)")
+    probability=tx.run("MATCH(id : $id) RETURN probablity(id)")
     tx.commit()    
     print("id=",id)#test
     return jsonify({"probability":val})
@@ -67,7 +67,7 @@ def is_positive:
     tx.commit()
     probablity=find_probablity(1,60)
     tx.run("MATCH ({id : $id})-[*]-(connected)"
-           "SET id.connected =$probablity",probablity=probablity)
+           "SET connected.probability=$probability",probablity=probablity)
     tx.commit()
     #db.is_positive(id) 
     return 201
