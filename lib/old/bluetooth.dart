@@ -20,7 +20,7 @@ class MyHomePage extends StatefulWidget {
 
  final String title;
  final FlutterBlue flutterBlue = FlutterBlue.instance;
- final List<BluetoothDevice> devicesList = new List<BluetoothDevice>();
+ final List<BluetoothDevice> devicesList = new List<BluetoothDevice>.empty();
 
  
  @override

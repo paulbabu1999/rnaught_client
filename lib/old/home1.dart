@@ -1,22 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'home.dart';
+import 'package:covid_19/Globals.dart' as Globals;
 
-class Trace extends StatefulWidget {
+
+
+class Home1 extends StatefulWidget {
   final int r;
-  Trace({@required this.r});
+  Home1({@required this.r});
   @override
-  _TraceState createState() => _TraceState();
+  _Home1State createState() => _Home1State();
 }
 
-class _TraceState extends State<Trace>{
+class _Home1State extends State<Home1> {
 
-  TextEditingController id2 = new TextEditingController();
-  TextEditingController dura = new TextEditingController();
-  TextEditingController loc = new TextEditingController();
+  TextEditingController age = new TextEditingController();
+  TextEditingController gender = new TextEditingController();
 
   @override
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text("Covid Tracker"),
@@ -27,10 +30,10 @@ class _TraceState extends State<Trace>{
           child: Column(
             children: [
               TextField(
-                controller: id2,
+                controller: age,
                 decoration: InputDecoration(
-                    hintText: "ID of Contact",
-                    labelText: "Contact",
+                    hintText: "Your Age",
+                    labelText: "Age",
                     labelStyle: TextStyle(fontSize: 24, color: Colors.black),
                     border: InputBorder.none,
                     fillColor: Colors.black12,
@@ -43,26 +46,10 @@ class _TraceState extends State<Trace>{
               ),
 
               TextField(
-                controller: dura,
+                controller: gender,
                 decoration: InputDecoration(
-                    hintText: "Duration of contact",
-                    labelText: "Duration(in minutes)",
-                    labelStyle: TextStyle(fontSize: 24, color: Colors.black),
-                    border: InputBorder.none,
-                    fillColor: Colors.black12,
-                    filled: true),
-                obscureText: false,
-                maxLength: 20,
-              ),
-              SizedBox(
-                height: 16,
-              ),
-
-              TextField(
-                controller: loc,
-                decoration: InputDecoration(
-                    hintText: "Location of contact",
-                    labelText: "Location",
+                    hintText: "Your Gender",
+                    labelText: "Gender",
                     labelStyle: TextStyle(fontSize: 24, color: Colors.black),
                     border: InputBorder.none,
                     fillColor: Colors.black12,
@@ -92,21 +79,25 @@ class _TraceState extends State<Trace>{
 
                     onPressed: () async {
                       final response = await http.post(
-                        'http://192.168.1.12:5000/new_contact',
-                        body: json.encode({
-                        'id1': widget.r,
-                        'id2': id2.text,
-                        'duration': dura.text,
-                        'location': loc.text,
-                        }),
-                      );
+                      Globals.ip_address+'/add_person',
+                      body: json.encode({
+                      'id': widget.r,
+                      'age': age.text,
+                      'gender': gender.text,
+                    }),
+                    );
+                    
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => Home(r: widget.r)));
                     },
-                ),
-              ],
-            ),
+              )
+            ],
           ),
         ),
-    );
+      ),
+    );  
+
+
+
 
   }
 }

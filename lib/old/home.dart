@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'trace.dart';
+import 'package:covid_19/Globals.dart' as Globals;
+
 
 class Home extends StatefulWidget {
   final int r;
@@ -78,7 +80,7 @@ class HomeTab extends StatelessWidget {
           child: Text('Check Percentage'),  
           onPressed: () async {
             final response = await http.post(
-                  'http://192.168.1.12:5000/probability',
+                  Globals.ip_address+'/probability',
                     body: json.encode({
                       'id': r,
                     }),
@@ -197,7 +199,7 @@ class VerificationTab extends StatelessWidget {
 
               onPressed: () async {
                 final response = await http.post(
-                  'http://192.168.1.12:5000/positive',
+                  Globals.ip_address+'/positive',
                     body: json.encode({
                       'id': r,
                       'skey': skey.text,

@@ -1,23 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'home.dart';
+import 'package:covid_19/Globals.dart' as Globals;
 
 
-class Home1 extends StatefulWidget {
+class Trace extends StatefulWidget {
   final int r;
-  Home1({@required this.r});
+  Trace({@required this.r});
   @override
-  _Home1State createState() => _Home1State();
+  _TraceState createState() => _TraceState();
 }
 
-class _Home1State extends State<Home1> {
+class _TraceState extends State<Trace>{
 
-  TextEditingController age = new TextEditingController();
-  TextEditingController gender = new TextEditingController();
+  TextEditingController id2 = new TextEditingController();
+  TextEditingController dura = new TextEditingController();
+  TextEditingController loc = new TextEditingController();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context){
     return Scaffold(
       appBar: AppBar(
         title: Text("Covid Tracker"),
@@ -28,10 +29,10 @@ class _Home1State extends State<Home1> {
           child: Column(
             children: [
               TextField(
-                controller: age,
+                controller: id2,
                 decoration: InputDecoration(
-                    hintText: "Your Age",
-                    labelText: "Age",
+                    hintText: "ID of Contact",
+                    labelText: "Contact",
                     labelStyle: TextStyle(fontSize: 24, color: Colors.black),
                     border: InputBorder.none,
                     fillColor: Colors.black12,
@@ -44,10 +45,26 @@ class _Home1State extends State<Home1> {
               ),
 
               TextField(
-                controller: gender,
+                controller: dura,
                 decoration: InputDecoration(
-                    hintText: "Your Gender",
-                    labelText: "Gender",
+                    hintText: "Duration of contact",
+                    labelText: "Duration(in minutes)",
+                    labelStyle: TextStyle(fontSize: 24, color: Colors.black),
+                    border: InputBorder.none,
+                    fillColor: Colors.black12,
+                    filled: true),
+                obscureText: false,
+                maxLength: 20,
+              ),
+              SizedBox(
+                height: 16,
+              ),
+
+              TextField(
+                controller: loc,
+                decoration: InputDecoration(
+                    hintText: "Location of contact",
+                    labelText: "Location",
                     labelStyle: TextStyle(fontSize: 24, color: Colors.black),
                     border: InputBorder.none,
                     fillColor: Colors.black12,
@@ -77,25 +94,21 @@ class _Home1State extends State<Home1> {
 
                     onPressed: () async {
                       final response = await http.post(
-                      'http://192.168.1.12:5000/add_person',
-                      body: json.encode({
-                      'id': widget.r,
-                      'age': age.text,
-                      'gender': gender.text,
-                    }),
-                    );
-                    
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => Home(r: widget.r)));
+                        Globals.ip_address+'/new_contact',
+                        body: json.encode({
+                        'id1': widget.r,
+                        'id2': id2.text,
+                        'duration': dura.text,
+                        'location': loc.text,
+                        }),
+                      );
                     },
-              )
-            ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    );  
-
-
-
+    );
 
   }
 }
