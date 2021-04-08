@@ -40,8 +40,7 @@ class _HomePageState extends State<HomePage> {
   bool isAdvertising = false; 
   String userid;
 
-  Set<String> recentlyRecievedUUIDS = new Set<String>();
-  
+  Map<String,int> recentlyRecievedUUIDS = {};  
   Set<String> recentlySentUUIDs = new Set<String>();
 
   // Methods
@@ -88,7 +87,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Send UUIDS to server on repeated intervals
-    _sendToServerTimer = new Timer.periodic(Duration(seconds: 15), (timer) { sendUUIDSToServer(); });
+    _sendToServerTimer = new Timer.periodic(Duration(seconds: 10), (timer) { sendUUIDSToServer(); });
   }
 
   void startBeaconServices(uuid){
@@ -111,10 +110,14 @@ class _HomePageState extends State<HomePage> {
     print("Trying to send data");
 
     
-    Set<String> newUuids = recentlyRecievedUUIDS.difference(recentlySentUUIDs);
-    Set<String> disconnectedUuids = recentlySentUUIDs.difference(recentlyRecievedUUIDS);
+    // Remove this: Set<String> newUuids = recentlyRecievedUUIDS.difference(recentlySentUUIDs);
+    Map<String,int> newConnections = Map.fromEntries(recentlyRecievedUUIDS.entries
+      .where((element) => !recentlySentUUIDs.contains(element.key))
+      .map((e) => MapEntry(e.key, e.value)));
 
-    if(newUuids.isEmpty && disconnectedUuids.isEmpty){
+    Set<String> disconnectedUuids = recentlySentUUIDs.difference(recentlyRecievedUUIDS.keys.toSet());
+
+    if(newConnections.keys.isEmpty && disconnectedUuids.isEmpty){
       print("No data to send");
       return;
     };
@@ -129,7 +132,7 @@ class _HomePageState extends State<HomePage> {
       "temperature": temperature,
       "location": location,
       "humidity": humidity,
-      "connections": newUuids.toList(),
+      "connections": newConnections,
       "disconnections": disconnectedUuids.toList()
     }; 
 
@@ -141,11 +144,10 @@ class _HomePageState extends State<HomePage> {
       )
       .then((response) async{
           setState(() {
-            recentlySentUUIDs = recentlyRecievedUUIDS;
-            recentlyRecievedUUIDS = new Set<String>();
+            recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
           });
       }).catchError((e){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Registration faild. no data returned")));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
       });
     
     
@@ -219,7 +221,7 @@ class _HomePageState extends State<HomePage> {
 
     _streamBeaconRanging = flutter_beacon.flutterBeacon.ranging(regions).listen((flutter_beacon.RangingResult result) {
       setState(() {
-        recentlyRecievedUUIDS = result.beacons.map((e) => e.proximityUUID).toSet();
+        recentlyRecievedUUIDS = Map.fromEntries(result.beacons.map((e) => MapEntry(e.proximityUUID, e.rssi)));
       });
     });
 
@@ -275,7 +277,7 @@ class _HomePageState extends State<HomePage> {
 
                 SizedBox(height: 30),
                 
-                Text(recentlyRecievedUUIDS.join("\n"))
+                Text(recentlyRecievedUUIDS.entries.map((e)=>e.key + "\t:\t" + e.value.toString()).join("\n"))
                 
               ]
             ),
