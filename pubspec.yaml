@@ -27,6 +27,8 @@ dependencies:
   shared_preferences: ^2.0.5
   beacon_broadcast: ^0.2.3
   flutter_beacon: ^0.3.0
+  geolocation: ^1.1.2
+  weather: ^1.4.0
 
 dev_dependencies:
   flutter_test:
