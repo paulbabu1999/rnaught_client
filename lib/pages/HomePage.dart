@@ -5,6 +5,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_blue/flutter_blue.dart';
+import 'package:location_permissions/location_permissions.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:beacon_broadcast/beacon_broadcast.dart';
@@ -35,6 +36,7 @@ class _HomePageState extends State<HomePage> {
   
   // States
   bool isBluetoothOn = false;
+  bool isLocationOn = false;
   bool isAdvertising = false; 
   String userid;
 
@@ -51,11 +53,23 @@ class _HomePageState extends State<HomePage> {
 
 
   void initApp() async{
+    PermissionStatus permission = await LocationPermissions().checkPermissionStatus();
+    if(permission == PermissionStatus.granted || permission == PermissionStatus.restricted){
+        setState(() {
+          isLocationOn = true;
+        });
+    }
+    else{
+      await LocationPermissions().requestPermissions();
+      initApp();
+    }
+    
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String uuid = prefs.getString('uid'); 
     setState(() {
       userid = uuid;
     });
+
 
     // Wait for bluetooth to turn on
     bluetoothStateChangeStream =  FlutterBlue.instance.state.listen((bluetoothState) {
@@ -74,7 +88,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Send UUIDS to server on repeated intervals
-    _sendToServerTimer = new Timer.periodic(Duration(seconds: 10), (timer) { sendUUIDSToServer(); });
+    _sendToServerTimer = new Timer.periodic(Duration(seconds: 15), (timer) { sendUUIDSToServer(); });
   }
 
   void startBeaconServices(uuid){
@@ -94,30 +108,32 @@ class _HomePageState extends State<HomePage> {
   }
 
   void sendUUIDSToServer(){
-    print("HI");
-    if(recentlyRecievedUUIDS.isEmpty) return;
+    print("Trying to send data");
 
-
+    
     Set<String> newUuids = recentlyRecievedUUIDS.difference(recentlySentUUIDs);
     Set<String> disconnectedUuids = recentlySentUUIDs.difference(recentlyRecievedUUIDS);
 
-    if(newUuids.isEmpty) return;
+    if(newUuids.isEmpty && disconnectedUuids.isEmpty){
+      print("No data to send");
+      return;
+    };
 
     Map location  = getMyCoordinates();
-    Future<String> temperature  = getTemp();
+    String temperature  = '10';
     int humidity = 1;
 
 
     Map body = {
       "user_id": userid,
-      "connect_ids": newUuids.toList(),
       "temperature": temperature,
       "location": location,
       "humidity": humidity,
-      "connections": newUuids,
-      "disconnections": disconnectedUuids
+      "connections": newUuids.toList(),
+      "disconnections": disconnectedUuids.toList()
     }; 
 
+    print("Sending data to server");
     http.post(
         Globals.ip_address+'new_contact',
         headers: {"Content-Type": "application/json"},
@@ -128,7 +144,7 @@ class _HomePageState extends State<HomePage> {
             recentlySentUUIDs = recentlyRecievedUUIDS;
             recentlyRecievedUUIDS = new Set<String>();
           });
-      }).catchError((){
+      }).catchError((e){
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Registration faild. no data returned")));
       });
     
@@ -143,14 +159,6 @@ class _HomePageState extends State<HomePage> {
 //Location
 //Now Create Method named _getCurrentLocation with async Like Below.
   _getCurrentLocation() async {
-    Geolocation.enableLocationServices().then((result) {
-      // Request location
-      // print(result);
-    }).catchError((e) {
-      // Location Services Enablind Cancelled
-      // print(e);
-    });
-
     Geolocation.currentLocation(accuracy: LocationAccuracy.best)
         .listen((result) {
       if (result.isSuccessful) {
@@ -210,14 +218,9 @@ class _HomePageState extends State<HomePage> {
 
 
     _streamBeaconRanging = flutter_beacon.flutterBeacon.ranging(regions).listen((flutter_beacon.RangingResult result) {
-      result.beacons.forEach(
-        (beacon) {
-          recentlyRecievedUUIDS.add(beacon.proximityUUID);
-        }
-      );
       setState(() {
-        recentlyRecievedUUIDS = recentlyRecievedUUIDS;
-      });  
+        recentlyRecievedUUIDS = result.beacons.map((e) => e.proximityUUID).toSet();
+      });
     });
 
   }
