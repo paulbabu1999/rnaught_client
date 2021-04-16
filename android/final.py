@@ -8,8 +8,7 @@ import json
 app=Flask(__name__)
 people={}
 id_new=0
-driver = GraphDatabase.driver("bolt://18.209.247.237:7687",auth=basic_auth("neo4j", "distributions-trailers-coupling"))
-
+driver = GraphDatabase.driver("bolt://3.86.89.41:7687",auth=basic_auth("neo4j", "tan-fights-invoice"))
 
 @app.route("/register",methods=['POST'])
 def register_user():
