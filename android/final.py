@@ -33,13 +33,13 @@ def new_contact():
     
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     
-    user_id,connected_ids,disconnected_ids,temperature,location,humidity=data_recieved['user_id'],data_recieved['connections'],data_recieved["disconnections"], data_recieved['temperature'],data_recieved['location'],data_recieved['humidity']
+    user_id,connected_ids,disconnected_ids,temperature,humidity=data_recieved['user_id'],data_recieved['connections'],data_recieved["disconnections"], data_recieved['temperature'],data_recieved['humidity']
     
     t=time()
     ltime=ctime(t).split(" ")
     ltime=" ".join(ltime[1:])
     for i in connected_ids:
-        query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}'CREATE (a)-[r:contact " +"{"+f"start:'{ltime}',location:'{location}',humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
+        query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}'CREATE (a)-[r:contact " +"{"+f"start:'{ltime}',humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
         session=driver.session()
         session.run(query)
     for i in disconnected_ids:
