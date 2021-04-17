@@ -12,6 +12,7 @@ driver = GraphDatabase.driver("bolt://3.86.89.41:7687",auth=basic_auth("neo4j", 
 
 @app.route("/register",methods=['POST'])
 def register_user():
+    probablity=0
     data_recieved =request.data
    
     data_recieved=json.loads(data_recieved.decode("utf-8"))
@@ -19,7 +20,7 @@ def register_user():
     age,gender=data_recieved['age'],data_recieved['gender']
     user_id = uuid.uuid4()
     
-    query=f" id:'{user_id}', age: {age},gender: {gender}"
+    query=f" id:'{user_id}', age: {age},gender: {gender},probablity: {probability}"
     query="CREATE (n:Person {"+query+"})"
     session=driver.session()
     session.run(query)
