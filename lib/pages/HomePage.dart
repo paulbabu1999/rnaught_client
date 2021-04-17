@@ -11,8 +11,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:beacon_broadcast/beacon_broadcast.dart';
 import 'package:flutter_beacon/flutter_beacon.dart' as flutter_beacon;
 
-import 'package:geolocation/geolocation.dart';
-import 'package:weather/weather.dart';
+//import 'package:geolocation/geolocation.dart';
+//import 'package:weather/weather.dart';
 
 
 class HomePage extends StatefulWidget {
@@ -98,12 +98,114 @@ class _HomePageState extends State<HomePage> {
     beaconBroadcast.stop();
   }
 
+
   void getProbability(){
-    // TODO : Complete This
+    String probability;
+    Map body = {
+      "id": userid,
+    }; 
+    http.post(
+        Globals.ip_address+'probability',
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(body)
+      )
+      .then((response) async{
+        final decoded = json.decode(response.body) as Map;
+        probability = decoded['probability'];
+      }).catchError((e){
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
+      });
+      _showProbability(probability);
   }
 
-  void iamCovidPositive(){
-    // TODO : Complete This
+  Future<void> _showProbability(String val) async {
+  return showDialog<void>(
+    context: context,
+    barrierDismissible: false, // user must tap button!
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Covid Infection Probability'),
+        content: 
+              Text('You have $val% chance of having covid'),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Close'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
+}
+
+  void iamCovidPositive() {
+    _verification(context);
+  }
+
+  Future<void> _verification(BuildContext context) async {
+    TextEditingController _verifyFieldController = TextEditingController();
+    String valueText;
+    String docCode;
+    return showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return AlertDialog(
+            title: Text('TextField in Dialog'),
+            content: TextField(
+              onChanged: (value) {
+                setState(() {
+                  valueText = value;
+                });
+              },
+              controller: _verifyFieldController,
+              decoration: InputDecoration(hintText: "Text Field in Dialog"),
+            ),
+            actions: <Widget>[
+              TextButton(
+                child: Text('CANCEL'),
+                onPressed: () {
+                  setState(() {
+                    Navigator.pop(context);
+                  });
+                },
+              ),
+              TextButton(
+                child: Text('OK'),
+                onPressed: () {
+                  setState(() {
+                    docCode = valueText;
+                    Navigator.pop(context);
+                  });
+                  sendVerificationToServer(docCode);
+                },
+              ),
+
+            ],
+          );
+        }
+      );
+  }
+
+
+  void sendVerificationToServer(String docCode) {
+    Map body = {
+      "id": userid,
+      "code": docCode,
+    }; 
+    http.post(
+        Globals.ip_address+'positive',
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(body)
+      )
+      .then((response) async{
+        final decoded = json.decode(response.body) as String;
+        print(decoded);//test
+      }).catchError((e){
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
+      });
   }
 
   void sendUUIDSToServer(){
@@ -122,7 +224,7 @@ class _HomePageState extends State<HomePage> {
       return;
     };
 
-    Map location  = getMyCoordinates();
+    //Map location  = getMyCoordinates();
     String temperature  = '10';
     int humidity = 1;
 
@@ -130,7 +232,6 @@ class _HomePageState extends State<HomePage> {
     Map body = {
       "user_id": userid,
       "temperature": temperature,
-      "location": location,
       "humidity": humidity,
       "connections": newConnections,
       "disconnections": disconnectedUuids.toList()
@@ -149,44 +250,38 @@ class _HomePageState extends State<HomePage> {
       }).catchError((e){
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
       });
-    
-    
 
-
-      
-
-    // TODO BY NOWFIR KAMBI
   }
 
 //Location
 //Now Create Method named _getCurrentLocation with async Like Below.
-  _getCurrentLocation() async {
-    Geolocation.currentLocation(accuracy: LocationAccuracy.best)
-        .listen((result) {
-      if (result.isSuccessful) {
-        setState(() {
-          lat = result.location.latitude;
-          long = result.location.longitude;
-        });
-      }
-    });
-  }
+  //_getCurrentLocation() async {
+    //Geolocation.currentLocation(accuracy: LocationAccuracy.best)
+      //  .listen((result) {
+     // if (result.isSuccessful) {
+      //  setState(() {
+       //   lat = result.location.latitude;
+        //  long = result.location.longitude;
+        //});
+     // }
+    //});
+ // }
 
-  Map getMyCoordinates(){
-    _getCurrentLocation();
-    String latitude = lat.toString();
-    String longitude = long.toString();
+  //Map getMyCoordinates(){
+   // _getCurrentLocation();
+    //String latitude = lat.toString();
+    //String longitude = long.toString();
 
-    return {"latitude":latitude,"longitude":longitude};
-  }
+    //return {"latitude":latitude,"longitude":longitude};
+  //}
 
 //Temperature
-  Future<String> getTemp() async {
-    WeatherFactory wf = new WeatherFactory(myKey);
-    Weather w = await wf.currentWeatherByLocation(lat, long);
-    String temp = w.temperature.celsius.toString();
-    return temp;
-  }
+ // Future<String> getTemp() async {
+   // WeatherFactory wf = new WeatherFactory(myKey);
+   // Weather w = await wf.currentWeatherByLocation(lat, long);
+   // String temp = w.temperature.celsius.toString();
+   // return temp;
+  //}
   
 
 
@@ -245,7 +340,7 @@ class _HomePageState extends State<HomePage> {
                   Column(
                     children: [
                       Icon(Icons.bluetooth,color: Colors.red,size: 30),
-                      Text("Bluetooth on aakeda"),
+                      Text("Please turn your bluetooth on"),
                       SizedBox(height: 100)
                     ],
                   ),
@@ -262,13 +357,13 @@ class _HomePageState extends State<HomePage> {
 
                 ElevatedButton(
                   onPressed: getProbability,
-                  child: Text("GET MY COVID PROBABILITY")
+                  child: Text("Get My Covid Probability")
                 ),
 
                 
                 ElevatedButton(
                   onPressed: iamCovidPositive,
-                  child: Text("I'M FEELING LUCKY"),
+                  child: Text("Covid Verification (Doctors only)"),
                   style: ElevatedButton.styleFrom(
                     primary: Colors.red, // background
                     onPrimary: Colors.white, // foreground

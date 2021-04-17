@@ -12,7 +12,7 @@ driver = GraphDatabase.driver("bolt://3.86.89.41:7687",auth=basic_auth("neo4j", 
 
 @app.route("/register",methods=['POST'])
 def register_user():
-    probablity=0
+    probability=0
     data_recieved =request.data
    
     data_recieved=json.loads(data_recieved.decode("utf-8"))
@@ -20,7 +20,7 @@ def register_user():
     age,gender=data_recieved['age'],data_recieved['gender']
     user_id = uuid.uuid4()
     
-    query=f" id:'{user_id}', age: {age},gender: {gender},probablity: {probability}"
+    query=f" id:'{user_id}', age: {age},gender: {gender},probability: {probability}"
     query="CREATE (n:Person {"+query+"})"
     session=driver.session()
     session.run(query)
@@ -53,20 +53,21 @@ def new_contact():
     #db.new_contact(id1,id2,duration,location)
     
     
-    return 200
+    return jsonify(200)
 @app.route("/probability",methods=['POST']) 
 def check_probability():
+    data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['id']
     #val=db.get_probability(id)
-    query=f"MATCH (a:Person) WHERE a.id='{user_id}'' Return a.probablity"
+    query=f"MATCH (a:Person) WHERE a.id='{user_id}'' Return a.probability"
     session=driver.session()
     val=session.run(query)
     print("id=",user_id)#test
     return jsonify({"probability":val})
 @app.route("/positive",methods=['POST'])
 def is_positive():
-    
+    data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['id']
     
@@ -102,12 +103,12 @@ def is_positive():
     contact_properties=a1    
      
     for i in range(len(node_ids)):
-        prob=find_probability(i+1,contact_properties[j])
-        query2=f"MATCH (a:Person) WHERE a.id='{node_ids[i]}'' SET a.probablity={prob}"
+        prob=find_probability(i+1,contact_properties[i])
+        query2=f"MATCH (a:Person) WHERE a.id='{node_ids[i]}'' SET a.probability={prob}"
         session=driver.session()
         session.run(query2)
     #update probability
-    return 201
+    return jsonify(201)
 
 
 def find_probability(level,contact_details):
@@ -119,5 +120,4 @@ def find_probability(level,contact_details):
 
 
 
-app.run(debug=True,host='0.0.0.0',port=5000)    
-
+app.run(debug=True,host='0.0.0.0',port=5000)   

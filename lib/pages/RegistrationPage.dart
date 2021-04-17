@@ -37,8 +37,13 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   }
   void registerButton(){
-    int gender = int.tryParse(_genderController.text);
+    String gen =_genderController.text;
     int age = int.tryParse(_ageController.text);
+    int gender = 1;
+    if(gen == "male" || gen =="Male"){
+      gender = 0;
+    }
+
     Map body = {
       "gender": gender,
       "age": age,
@@ -50,7 +55,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
       )
       .then((response) async{
         final decoded = json.decode(response.body) as Map;
-        if(decoded.containsKey('id')){
+      if(decoded.containsKey('id')){
           String id = decoded['id'];
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('uid', id);
@@ -99,7 +104,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             ),
             TextFormField(
               controller: _genderController,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.text,
               decoration: InputDecoration(
                 hintText: "Gender"
               ),
