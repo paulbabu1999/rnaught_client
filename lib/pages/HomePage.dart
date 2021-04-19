@@ -24,7 +24,7 @@ class _HomePageState extends State<HomePage> {
   // Constants
   final FlutterBlue flutterBlue = FlutterBlue.instance;
   final BeaconBroadcast beaconBroadcast = BeaconBroadcast();
-  String myKey = '5576f874bd97fe2728f4da4e17989804';
+  //String myKey = '5576f874bd97fe2728f4da4e17989804';
 
   // Variables
   Timer _sendToServerTimer;
@@ -102,7 +102,7 @@ class _HomePageState extends State<HomePage> {
   void getProbability(){
     String probability;
     Map body = {
-      "id": userid,
+      "user_id": userid,
     }; 
     http.post(
         Globals.ip_address+'probability',
@@ -192,7 +192,7 @@ class _HomePageState extends State<HomePage> {
 
   void sendVerificationToServer(String docCode) {
     Map body = {
-      "id": userid,
+      "user_id": userid,
       "code": docCode,
     }; 
     http.post(
