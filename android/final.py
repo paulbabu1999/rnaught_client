@@ -20,12 +20,12 @@ def register_user():
     age,gender=data_recieved['age'],data_recieved['gender']
     user_id = uuid.uuid4()
     
-    query=f" id:'{user_id}', age: {age},gender: {gender},probability: {probability}"
+    query=f" id:'{user_id}', age: {age},gender: '{gender}',probability: {probability}"
     query="CREATE (n:Person {"+query+"})"
     session=driver.session()
     session.run(query)
     #print(data_recieved," user created")#test
-    return jsonify({"id":user_id})
+    return jsonify({"user_id":user_id})
 prev_ids={}
 @app.route("/new_contact",methods=['POST'])
 def new_contact():
@@ -43,7 +43,7 @@ def new_contact():
         session=driver.session()
         session.run(query)
     for i in disconnected_ids:
-        query=f"MATCH (a"+"{"+f"id:'{user_id}'"+"})-[r]-(b"+"{"+f"id:'{i}'"+"})"+ f"SET r.end='{ltime}'"
+        query="MATCH (a{"+f"id:'{user_id}'"+"})-[r]-(b{"+f"id:'{i}'"+"})"+ f"SET r.end='{ltime}'"
 
         session=driver.session()
         session.run(query)
@@ -58,18 +58,18 @@ def new_contact():
 def check_probability():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
-    user_id=data_recieved['id']
+    user_id=data_recieved['user_id']
     #val=db.get_probability(id)
-    query=f"MATCH (a:Person) WHERE a.id='{user_id}'' Return a.probability"
+    query=f"MATCH (a:Person) WHERE a.id='{user_id}' Return a.probability"
     session=driver.session()
     val=session.run(query)
-    print("id=",user_id)#test
+    print("user_id=",user_id)#test
     return jsonify({"probability":val})
 @app.route("/positive",methods=['POST'])
 def is_positive():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
-    user_id=data_recieved['id']
+    user_id=data_recieved['user_id']
     
     query="CALL apoc.export.json.query("
     q="MATCH p=(u{id:"+f"'{user_id}'"+"})-[:contact*..5]->(fr) RETURN relationships(p)"
