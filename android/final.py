@@ -16,7 +16,6 @@ def register_user():
     data_recieved =request.data
    
     data_recieved=json.loads(data_recieved.decode("utf-8"))
-    
     age,gender=data_recieved['age'],data_recieved['gender']
     user_id = uuid.uuid4()
     
@@ -56,15 +55,17 @@ def new_contact():
     return jsonify(200)
 @app.route("/probability",methods=['POST']) 
 def check_probability():
+    val=0
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['user_id']
     #val=db.get_probability(id)
+    print("hi")
     query=f"MATCH (a:Person) WHERE a.id='{user_id}' Return a.probability"
     session=driver.session()
     val=session.run(query)
-    print("user_id=",user_id)#test
-    return jsonify({"probability":val})
+    
+    return jsonify(val.data()[0])
 @app.route("/positive",methods=['POST'])
 def is_positive():
     data_recieved =request.data
