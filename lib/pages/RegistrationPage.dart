@@ -55,8 +55,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
       )
       .then((response) async{
         final decoded = json.decode(response.body) as Map;
-      if(decoded.containsKey('id')){
-          String id = decoded['id'];
+      if(decoded.containsKey('user_id')){
+          String id = decoded['user_id'];
           SharedPreferences prefs = await SharedPreferences.getInstance();
           prefs.setString('uid', id);
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("User Created")));
@@ -66,7 +66,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
           });
         }
         else{
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Registration faild. no data returned")));
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Registration failed. no data returned")));
         }
       });
   }
