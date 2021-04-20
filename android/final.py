@@ -4,7 +4,12 @@ from neo4j import GraphDatabase, basic_auth
 from time import time,ctime
 
 import json
+def find_probability(level,contact_details):
+    probability=.9/level**1.5
+    
 
+    #to do:consider other factors to find probability
+    return probability   
 app=Flask(__name__)
 people={}
 id_new=0
@@ -96,27 +101,24 @@ def is_positive():
     for i in fr:
         a=i[0].split("\n")
     a=a[-1]
-    a=json.loads(a)
-    a=a["relationships(p)"]
-    a1=[]
-    for i in a:
-        a1.append(i["properties"])
-    contact_properties=a1    
-     
-    for i in range(len(node_ids)):
-        prob=find_probability(i+1,contact_properties[i])
-        query2=f"MATCH (a:Person) WHERE a.id='{node_ids[i]}' SET a.probability={prob}"
-        session=driver.session()
-        session.run(query2)
-    #update probability
+    if len(a)>2:
+        a=json.loads(a)
+        a=a["relationships(p)"]
+        a1=[]
+        for i in a:
+            a1.append(i["properties"])
+        contact_properties=a1    
+        
+        for i in range(len(node_ids)):
+            prob=find_probability(i+1,contact_properties[i])
+            query2=f"MATCH (a:Person) WHERE a.id='{node_ids[i]}' SET a.probability={prob}"
+            session=driver.session()
+            session.run(query2)
+        #update probability
     return jsonify(201)
 
 
-def find_probability(level,contact_details):
-    probability=.9/level**1.5
-
-    #to do:consider other factors to find probability
-    return probability                
+             
 
 
 
