@@ -31,6 +31,7 @@ def register_user():
     #print(data_recieved," user created")#test
     return jsonify({"user_id":user_id})
 prev_ids={}
+
 @app.route("/new_contact",methods=['POST'])
 def new_contact():
     data_recieved =request.data
@@ -44,6 +45,7 @@ def new_contact():
     ltime=ctime(t).split(" ")
     ltime=" ".join(ltime[1:])
     for i,j in connected_ids.items():
+        print("item  ",i)
         print("item  ",j)
         query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}'CREATE (a)-[r:contact " +"{"+f"start:'{ltime}',humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
         session=driver.session()
@@ -58,8 +60,8 @@ def new_contact():
 
     #db.new_contact(id1,id2,duration,location)
     
-    
     return jsonify(200)
+
 @app.route("/probability",methods=['POST']) 
 def check_probability():
     val=0
@@ -73,6 +75,7 @@ def check_probability():
     val=session.run(query)
     
     return jsonify(val.data()[0])
+    
 @app.route("/positive",methods=['POST'])
 def is_positive():
     data_recieved =request.data
