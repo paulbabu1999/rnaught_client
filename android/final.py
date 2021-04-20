@@ -39,10 +39,12 @@ def new_contact():
     
     user_id,connected_ids,disconnected_ids,temperature,humidity=data_recieved['user_id'],data_recieved['connections'],data_recieved["disconnections"], data_recieved['temperature'],data_recieved['humidity']
     
+    disconnected_ids=list(disconnected_ids)
     t=time()
     ltime=ctime(t).split(" ")
     ltime=" ".join(ltime[1:])
-    for i in connected_ids:
+    for i,j in connected_ids.items():
+        print("item  ",j)
         query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}'CREATE (a)-[r:contact " +"{"+f"start:'{ltime}',humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
         session=driver.session()
         session.run(query)
