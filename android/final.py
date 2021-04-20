@@ -105,7 +105,7 @@ def is_positive():
      
     for i in range(len(node_ids)):
         prob=find_probability(i+1,contact_properties[i])
-        query2=f"MATCH (a:Person) WHERE a.id='{node_ids[i]}'' SET a.probability={prob}"
+        query2=f"MATCH (a:Person) WHERE a.id='{node_ids[i]}' SET a.probability={prob}"
         session=driver.session()
         session.run(query2)
     #update probability
