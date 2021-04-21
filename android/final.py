@@ -2,7 +2,7 @@ import uuid
 from flask import Flask,request,jsonify
 from neo4j import GraphDatabase, basic_auth
 from time import time,ctime
-
+import datetime
 import json
 def find_probability(level,contact_details):
     probability=.9/level**1.5
@@ -40,16 +40,21 @@ def new_contact():
     user_id,connected_ids,disconnected_ids,temperature,humidity=data_recieved['user_id'],data_recieved['connections'],data_recieved["disconnections"], data_recieved['temperature'],data_recieved['humidity']
     
     disconnected_ids=list(disconnected_ids)
+    d = datetime.datetime.now()
+    month=d.strftime("%m")
     t=time()
     ltime=ctime(t).split(" ")
-    ltime=" ".join(ltime[1:])
+    atime=ltime[3].split(":")
+    atime=int(atime[0])*60+int(atime[1])
+    date=(int(ltime[-1])*10000+int(month)*100+int(ltime[2]))*3600
+    ltime=date+atime
     for i,j in connected_ids.items():
-        print("item  ",j)
-        query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}'CREATE (a)-[r:contact " +"{"+f"start:'{ltime}',humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
-        session=driver.session()
-        session.run(query)
+        if j>-100:
+            query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}'CREATE (a)-[r:contact " +"{"+f"start:{ltime},humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
+            session=driver.session()
+            session.run(query)
     for i in disconnected_ids:
-        query="MATCH (a{"+f"id:'{user_id}'"+"})-[r]-(b{"+f"id:'{i}'"+"})"+ f"SET r.end='{ltime}'"
+        query="MATCH (a{"+f"id:'{user_id}'"+"})-[r]-(b{"+f"id:'{i}'"+"})"+ f"SET r.end={ltime}"
 
         session=driver.session()
         session.run(query)
@@ -118,11 +123,5 @@ def is_positive():
             session.run(query2)
         #update probability
     return jsonify(201)
-
-
-             
-
-
-
 
 app.run(debug=True,host='0.0.0.0',port=5000)   
