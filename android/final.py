@@ -4,9 +4,10 @@ from neo4j import GraphDatabase, basic_auth
 from time import time,ctime
 import datetime
 import json
+from collections import defaultdict
 def find_probability(level,contact_details):
     probability=.9/level**1.5
-    
+    contact_details=defaultdict(int,contact_details)
 
     #to do:consider other factors to find probability
     return probability   
@@ -72,8 +73,7 @@ def check_probability():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['user_id']
-    #val=db.get_probability(id)
-    print("hi")
+    
     query=f"MATCH (a:Person) WHERE a.id='{user_id}' Return a.probability"
     session=driver.session()
     val=session.run(query)
@@ -91,19 +91,6 @@ def is_positive():
 
     query="\"%s\""%q
     query="CALL apoc.export.json.query("+query+",null,{"+"stream:true})YIELD data "
-    query1="MATCH(u{" +f"id:'{user_id}'"+"})-[:contact*..5]->(fr) RETURN fr.id"
-    
-    session=driver.session()
-    myResult = session.run(query1) 
-    b=[]
-    b1=[]
-    for i in myResult:
-        b1.append(i)
-    for i in b1:
-        b.append(i.data())  
-    node_ids=[]
-    for i in b:
-        node_ids.append(i['fr.id'])
     
     session=driver.session()
     fr=session.run(query)
