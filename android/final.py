@@ -5,7 +5,9 @@ from time import time,ctime
 import datetime
 import json
 def find_probability(level,contact_details):
-    probability=.9/level**1.5
+    
+    probability=.9/level**1.2
+
     
 
     #to do:consider other factors to find probability
@@ -85,7 +87,9 @@ def is_positive():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['user_id']
-    
+    query2=f"MATCH (a:Person) WHERE a.id='{user_id}' SET a.probability=1"
+    session=driver.session()
+    session.run(query2)
     query="CALL apoc.export.json.query("
     q="MATCH p=(u{id:"+f"'{user_id}'"+"})-[:contact*..5]->(fr) RETURN relationships(p)"
 
