@@ -100,7 +100,7 @@ class _HomePageState extends State<HomePage> {
 
 
   void getProbability(){
-    String probability;
+    int probability;
     Map body = {
       "user_id": userid,
     }; 
@@ -111,41 +111,44 @@ class _HomePageState extends State<HomePage> {
       )
       .then((response) async{
         final decoded = json.decode(response.body) as Map;
-        probability = decoded['probability'];
+        setState(() {
+            probability = decoded['a.probability'];
+          });
+        showProbability(probability);
       }).catchError((e){
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
       });
-      _showProbability(probability);
+      
   }
 
-  Future<void> _showProbability(String val) async {
-  return showDialog<void>(
-    context: context,
-    barrierDismissible: false, // user must tap button!
-    builder: (BuildContext context) {
-      return AlertDialog(
-        title: Text('Covid Infection Probability'),
-        content: 
-              Text('You have $val% chance of having covid'),
-        actions: <Widget>[
-          TextButton(
-            child: Text('Close'),
-            onPressed: () {
-              Navigator.of(context).pop();
-            },
-          ),
-        ],
-      );
-    },
-  );
-}
+  Future<void> showProbability(int val) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Covid Infection Probability'),
+          content: 
+                Text('You have $val% chance of having covid'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   void iamCovidPositive() {
-    _verification(context);
+    verification(context);
   }
 
-  Future<void> _verification(BuildContext context) async {
-    TextEditingController _verifyFieldController = TextEditingController();
+  Future<void> verification(BuildContext context) async {
+    TextEditingController verifyFieldController = TextEditingController();
     String valueText;
     String docCode;
     return showDialog(
@@ -153,15 +156,15 @@ class _HomePageState extends State<HomePage> {
         barrierDismissible: false,
         builder: (context) {
           return AlertDialog(
-            title: Text('TextField in Dialog'),
+            title: Text('Covid Confirmation'),
             content: TextField(
               onChanged: (value) {
                 setState(() {
                   valueText = value;
                 });
               },
-              controller: _verifyFieldController,
-              decoration: InputDecoration(hintText: "Text Field in Dialog"),
+              controller: verifyFieldController,
+              decoration: InputDecoration(hintText: "Enter your secret number"),
             ),
             actions: <Widget>[
               TextButton(
@@ -201,8 +204,9 @@ class _HomePageState extends State<HomePage> {
         body: json.encode(body)
       )
       .then((response) async{
-        final decoded = json.decode(response.body) as String;
+        final decoded = json.decode(response.body);
         print(decoded);//test
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Verified as Covid Positive")));
       }).catchError((e){
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
       });
@@ -222,7 +226,7 @@ class _HomePageState extends State<HomePage> {
     if(newConnections.keys.isEmpty && disconnectedUuids.isEmpty){
       print("No data to send");
       return;
-    };
+    }
 
     //Map location  = getMyCoordinates();
     String temperature  = '10';
@@ -242,14 +246,14 @@ class _HomePageState extends State<HomePage> {
         Globals.ip_address+'new_contact',
         headers: {"Content-Type": "application/json"},
         body: json.encode(body)
-      )
-      .then((response) async{
-          setState(() {
-            recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
-          });
-      }).catchError((e){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
-      });
+    )
+    .then((response) async{
+        setState(() {
+          recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
+        });
+    }).catchError((e){
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
+    });
 
   }
 

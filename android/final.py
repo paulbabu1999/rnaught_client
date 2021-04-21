@@ -31,6 +31,7 @@ def register_user():
     #print(data_recieved," user created")#test
     return jsonify({"user_id":user_id})
 prev_ids={}
+
 @app.route("/new_contact",methods=['POST'])
 def new_contact():
     data_recieved =request.data
@@ -63,8 +64,8 @@ def new_contact():
 
     #db.new_contact(id1,id2,duration,location)
     
-    
     return jsonify(200)
+
 @app.route("/probability",methods=['POST']) 
 def check_probability():
     val=0
@@ -78,6 +79,7 @@ def check_probability():
     val=session.run(query)
     
     return jsonify(val.data()[0])
+    
 @app.route("/positive",methods=['POST'])
 def is_positive():
     data_recieved =request.data
