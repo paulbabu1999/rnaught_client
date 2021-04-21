@@ -5,9 +5,7 @@ from time import time,ctime
 import datetime
 import json
 def find_probability(level,contact_details):
-    
-    probability=.9/level**1.2
-
+    probability=.9/level**1.5
     
 
     #to do:consider other factors to find probability
@@ -87,16 +85,14 @@ def is_positive():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['user_id']
-    query2=f"MATCH (a:Person) WHERE a.id='{user_id}' SET a.probability=1"
-    session=driver.session()
-    session.run(query2)
+    
     query="CALL apoc.export.json.query("
     q="MATCH p=(u{id:"+f"'{user_id}'"+"})-[:contact*..5]->(fr) RETURN relationships(p)"
 
     query="\"%s\""%q
     query="CALL apoc.export.json.query("+query+",null,{"+"stream:true})YIELD data "
     query1="MATCH(u{" +f"id:'{user_id}'"+"})-[:contact*..5]->(fr) RETURN fr.id"
-    print(query)
+    
     session=driver.session()
     myResult = session.run(query1) 
     b=[]
@@ -108,26 +104,27 @@ def is_positive():
     node_ids=[]
     for i in b:
         node_ids.append(i['fr.id'])
-    print(node_ids)    
+    
     session=driver.session()
     fr=session.run(query)
+
     for i in fr:
         a=i[0].split("\n")
-    a=a[-1]
-    if len(a)>2:
-        a=json.loads(a)
-        a=a["relationships(p)"]
-        a1=[]
-        for i in a:
-            a1.append(i["properties"])
-        contact_properties=a1    
+    for i in a:
+        i=json.loads(i)
+        i=i["relationships(p)"]
+        for j in i:
+            lvl,c_id,contact_properties=len(i),j["start"] ,j["properties"]
+            c_id=c_id["id"]
         
-        for i in range(len(node_ids)):
-            prob=find_probability(i+1,contact_properties[i])
-            query2=f"MATCH (a:Person) WHERE a.id='{node_ids[i]}' SET a.probability={prob}"
-            session=driver.session()
-            session.run(query2)
-        #update probability
+
+            
+        
+        prob=find_probability(lvl,contact_properties)
+        
+        query2=f"MATCH (a:Person) WHERE id(a)={c_id} SET a.probability={prob}"
+        session=driver.session()
+        session.run(query2)
     return jsonify(201)
 
 app.run(debug=True,host='0.0.0.0',port=5000)   
