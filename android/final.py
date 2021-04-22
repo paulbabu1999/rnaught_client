@@ -6,8 +6,14 @@ import datetime
 import json
 from collections import defaultdict
 def find_probability(level,contact_details):
-    probability=.9/level**1.5
+    
     contact_details=defaultdict(int,contact_details)
+    duration=contact_details["end"]-contact_details["start"]
+    if duration>30:
+        probability=.9/level**1.3
+    else:
+        probability=.6/level**1.3+duration*.01
+    return probability
 
     #to do:consider other factors to find probability
     return probability   
@@ -85,7 +91,14 @@ def is_positive():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['user_id']
-    
+    d = datetime.datetime.now()
+    month=d.strftime("%m")
+    t=time()
+    ltime=ctime(t).split(" ")
+    atime=ltime[3].split(":")
+    atime=int(atime[0])*60+int(atime[1])
+    date=(int(ltime[-1])*10000+int(month)*12+int(ltime[2]))*24*60
+    ltime=date+atime
     query="CALL apoc.export.json.query("
     q="MATCH p=(u{id:"+f"'{user_id}'"+"})-[:contact*..5]->(fr) RETURN relationships(p)"
 
@@ -112,6 +125,7 @@ def is_positive():
         query2=f"MATCH (a:Person) WHERE id(a)={c_id} SET a.probability={prob}"
         session=driver.session()
         session.run(query2)
+            
     return jsonify(201)
 
 app.run(debug=True,host='0.0.0.0',port=5000)   
