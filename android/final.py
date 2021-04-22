@@ -5,22 +5,36 @@ from time import time,ctime
 import datetime
 import json
 from collections import defaultdict
-def find_probability(level,contact_details):
+def find_probability(user_id,level,contact_details):
+    query=f"MATCH (a:Person) WHERE id(a)={user_id} Return a.probability"
+    session=driver.session()
+    val=session.run(query)
+    val=val.data()
+    val=val[0]
+
     
+    val=val["a.probability"]
+
     contact_details=defaultdict(int,contact_details)
-    duration=contact_details["end"]-contact_details["start"]
+    if contact_details["end"]==0:
+        duration=1
+    else:
+        duration=contact_details["end"]-contact_details["start"]
     if duration>30:
         probability=.9/level**1.3
     else:
         probability=.6/level**1.3+duration*.01
-    return probability
+    
+    return val<probability,probability
 
     #to do:consider other factors to find probability
-    return probability   
+      
 app=Flask(__name__)
 people={}
 id_new=0
-driver = GraphDatabase.driver("bolt://3.86.89.41:7687",auth=basic_auth("neo4j", "tan-fights-invoice"))
+driver = GraphDatabase.driver(
+  "bolt://3.234.205.73:7687",
+  auth=basic_auth("neo4j", "tracks-hundred-licks"))
 
 @app.route("/register",methods=['POST'])
 def register_user():
@@ -95,37 +109,56 @@ def is_positive():
     month=d.strftime("%m")
     t=time()
     ltime=ctime(t).split(" ")
-    atime=ltime[3].split(":")
+    atime=ltime[3].split(":")   
     atime=int(atime[0])*60+int(atime[1])
     date=(int(ltime[-1])*10000+int(month)*12+int(ltime[2]))*24*60
     ltime=date+atime
+    query2=f"MATCH (a:Person) WHERE a.id='{user_id}' SET a.probability=1"
+    session=driver.session()
+    session.run(query2)
     query="CALL apoc.export.json.query("
     q="MATCH p=(u{id:"+f"'{user_id}'"+"})-[:contact*..5]->(fr) RETURN relationships(p)"
 
     query="\"%s\""%q
     query="CALL apoc.export.json.query("+query+",null,{"+"stream:true})YIELD data "
-    
+
     session=driver.session()
     fr=session.run(query)
 
     for i in fr:
         a=i[0].split("\n")
+    contact_time_applicable={}    
     for i in a:
+        
         i=json.loads(i)
+        
         i=i["relationships(p)"]
+        
         for j in i:
-            lvl,c_id,contact_properties=len(i),j["start"] ,j["properties"]
+            lvl,c_id,contact_properties,temp=len(i),j["end"] ,j["properties"],j["end"]#temp to store id of parent to check contact time
+            temp=temp["id"]
+            contact_time_applicable[temp]=contact_properties["start"]#d contains id and contact time
             c_id=c_id["id"]
         
+        
+        k=0    
+        if lvl==1 and ltime-contact_properties["start"]<24*60*28:
+            
+            k=1
+            e,prob=find_probability(c_id,lvl,contact_properties)
+            
+        elif lvl>1 and  contact_properties["start"]>=contact_time_applicable[c_id]:
+            
+            k=1
+            e,prob=find_probability(c_id,lvl,contact_properties)
+        else:
+            pass    
 
+        if k==1 and e:
             
-        
-        prob=find_probability(lvl,contact_properties)
-        
-        query2=f"MATCH (a:Person) WHERE id(a)={c_id} SET a.probability={prob}"
-        session=driver.session()
-        session.run(query2)
-            
+            query2=f"MATCH (a:Person) WHERE id(a)={c_id} SET a.probability={prob}"
+            session=driver.session()
+            session.run(query2)
     return jsonify(201)
 
 app.run(debug=True,host='0.0.0.0',port=5000)   
