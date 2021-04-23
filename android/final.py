@@ -160,5 +160,22 @@ def is_positive():
             session=driver.session()
             session.run(query2)
     return jsonify(201)
+@app.route("/police",methods=['POST'])
+def police():
+    d={}
+    data_recieved =request.data
+    data_recieved=json.loads(data_recieved.decode("utf-8")) 
+    connections=data_recieved['connections']
+    print(connections)
+    for i,j in connections.items():
+        if j>-100:
+            query=f"MATCH (a:Person) WHERE a.id='{i}' Return a.probability"
+            session=driver.session()
+            val=session.run(query)
+            val=val.data()
+            val=val[0]
+            val=val["a.probability"]
+            d[i]=val
 
+    return jsonify(d)
 app.run(debug=True,host='0.0.0.0',port=5000)   
