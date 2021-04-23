@@ -56,10 +56,11 @@ prev_ids={}
 @app.route("/new_contact",methods=['POST'])
 def new_contact():
     data_recieved =request.data
+    data_recieved=data_recieved.decode("utf-8")
+    print(data_recieved)
+    data_recieved=json.loads(data_recieved)
     
-    data_recieved=json.loads(data_recieved.decode("utf-8"))
-    
-    user_id,connected_ids,disconnected_ids,temperature,humidity=data_recieved['user_id'],data_recieved['connections'],data_recieved["disconnections"], data_recieved['temperature'],data_recieved['humidity']
+    user_id,connected_ids,disconnected_ids,temperature,humidity=data_recieved['user_id'],data_recieved['connections'],data_recieved['disconnections'], data_recieved['temperature'],data_recieved['humidity']
     
     disconnected_ids=list(disconnected_ids)
     d = datetime.datetime.now()
@@ -124,41 +125,43 @@ def is_positive():
 
     session=driver.session()
     fr=session.run(query)
-
+    
     for i in fr:
         a=i[0].split("\n")
-    contact_time_applicable={}    
-    for i in a:
-        
-        i=json.loads(i)
-        
-        i=i["relationships(p)"]
-        
-        for j in i:
-            lvl,c_id,contact_properties,temp=len(i),j["end"] ,j["properties"],j["end"]#temp to store id of parent to check contact time
-            temp=temp["id"]
-            contact_time_applicable[temp]=contact_properties["start"]#d contains id and contact time
-            c_id=c_id["id"]
-        
-        
-        k=0    
-        if lvl==1 and ltime-contact_properties["start"]<24*60*28:
+    print(a)    
+    if len(a[0]) >1:   
+        contact_time_applicable={}    
+        for i in a:
             
-            k=1
-            e,prob=find_probability(c_id,lvl,contact_properties)
+            i=json.loads(i)
             
-        elif lvl>1 and  contact_properties["start"]>=contact_time_applicable[c_id]:
+            i=i["relationships(p)"]
             
-            k=1
-            e,prob=find_probability(c_id,lvl,contact_properties)
-        else:
-            pass    
+            for j in i:
+                lvl,c_id,contact_properties,temp=len(i),j["end"] ,j["properties"],j["end"]#temp to store id of parent to check contact time
+                temp=temp["id"]
+                contact_time_applicable[temp]=contact_properties["start"]#d contains id and contact time
+                c_id=c_id["id"]
+            
+            
+            k=0    
+            if lvl==1 and ltime-contact_properties["start"]<24*60*28:
+                
+                k=1
+                e,prob=find_probability(c_id,lvl,contact_properties)
+                
+            elif lvl>1 and  contact_properties["start"]>=contact_time_applicable[c_id]:
+                
+                k=1
+                e,prob=find_probability(c_id,lvl,contact_properties)
+            else:
+                pass    
 
-        if k==1 and e:
-            
-            query2=f"MATCH (a:Person) WHERE id(a)={c_id} SET a.probability={prob}"
-            session=driver.session()
-            session.run(query2)
+            if k==1 and e:
+                
+                query2=f"MATCH (a:Person) WHERE id(a)={c_id} SET a.probability={prob}"
+                session=driver.session()
+                session.run(query2)
     return jsonify(201)
 @app.route("/police",methods=['POST'])
 def police():
