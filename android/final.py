@@ -5,6 +5,7 @@ from time import time,ctime
 import datetime
 import json
 from collections import defaultdict
+
 def find_probability(user_id,level,contact_details):
     query=f"MATCH (a:Person) WHERE id(a)={user_id} Return a.probability"
     session=driver.session()
@@ -16,14 +17,12 @@ def find_probability(user_id,level,contact_details):
     val=val["a.probability"]
 
     contact_details=defaultdict(int,contact_details)
-    if contact_details["end"]==0:
-        duration=1
+    if contact_details["dur"]==0:
+        probability=.8/level**1.2
     else:
-        duration=contact_details["end"]-contact_details["start"]
-    if duration>30:
-        probability=.9/level**1.3
-    else:
-        probability=.6/level**1.3+duration*.01
+        probability=.68/level**1.2+.1/level
+    
+        
     
     return val<probability,probability
 
@@ -33,8 +32,14 @@ app=Flask(__name__)
 people={}
 id_new=0
 driver = GraphDatabase.driver(
-  "bolt://3.234.205.73:7687",
-  auth=basic_auth("neo4j", "tracks-hundred-licks"))
+  "bolt://54.226.63.117:7687",
+  auth=basic_auth("neo4j", "hugs-perforation-elbows"))
+
+
+def findsource(user_id):
+    q="MATCH(a:Person { "+f"id: '{user_id}' "+"}),(b:Person {positive: 'true'}),p = shortestPath((a)-[*]-(b)) Return p"
+    session=driver.session()
+    fr=session.run(q)
 
 @app.route("/register",methods=['POST'])
 def register_user():
@@ -49,7 +54,6 @@ def register_user():
     query="CREATE (n:Person {"+query+"})"
     session=driver.session()
     session.run(query)
-    #print(data_recieved," user created")#test
     return jsonify({"user_id":user_id})
 prev_ids={}
 
@@ -57,7 +61,7 @@ prev_ids={}
 def new_contact():
     data_recieved =request.data
     data_recieved=data_recieved.decode("utf-8")
-    print(data_recieved)
+    
     data_recieved=json.loads(data_recieved)
     
     user_id,connected_ids,disconnected_ids,temperature,humidity=data_recieved['user_id'],data_recieved['connections'],data_recieved['disconnections'], data_recieved['temperature'],data_recieved['humidity']
@@ -73,11 +77,30 @@ def new_contact():
     ltime=date+atime
     for i,j in connected_ids.items():
         if j>-100:
-            query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}'CREATE (a)-[r:contact " +"{"+f"start:{ltime},humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
+            q="MATCH  (a:Person { "+ f"id:'{user_id}'"+"}), (b:Person {id:"+f"'{i}' "+"}) RETURN EXISTS( (a)-[:contact]-(b) )"
             session=driver.session()
-            session.run(query)
+            fr=session.run(q)
+            if (fr.data()[0]['EXISTS( (a)-[:contact]-(b) )']):
+                q="MATCH  (:Person {id:"+f"'{user_id}'"+"})-[r:contact]-(:Person {id:"+f"'{i}'"+"}) Set r.new="+f"{ltime}"
+                session=driver.session()
+                session.run(q)
+
+            
+            else:
+                query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}' CREATE (a)-[r:contact " +"{"+f"old:{ltime},new:{ltime},dur:0, humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
+                session=driver.session()
+                session.run(query)
     for i in disconnected_ids:
-        query="MATCH (a{"+f"id:'{user_id}'"+"})-[r]-(b{"+f"id:'{i}'"+"})"+ f"SET r.end={ltime}"
+        k=0
+        q="match(:Person{id:" f"'{user_id}'"+ " })-[r:contact]-(:Person{id:"+f"'{i}'"+"}) Return r.new"
+        session=driver.session()
+        fr=session.run(q)
+        begin=fr.data()[0]['r.new']
+        if ltime-begin>30:
+            k=1
+         
+
+        query="MATCH (a{ "+f"id:'{user_id}'"+" })-[r]-(b{ "+f"id:'{i}'"+" }) "+ f" SET r.dur={k}"
 
         session=driver.session()
         session.run(query)
@@ -114,11 +137,25 @@ def is_positive():
     atime=int(atime[0])*60+int(atime[1])
     date=(int(ltime[-1])*10000+int(month)*12+int(ltime[2]))*24*60
     ltime=date+atime
-    query2=f"MATCH (a:Person) WHERE a.id='{user_id}' SET a.probability=1"
+    query=f"MATCH (a:Person) WHERE a.id='{user_id}' Return a.probability"
+    session=driver.session()
+    val=session.run(query)
+    val=val.data()
+    val=val[0]
+    val=val["a.probability"]
+    if val<.05:
+        
+       # findsource(user_id)
+        pass
+
+    query2="MATCH (a{"+ f"id:'{user_id}'"+"}) Set a+={probability:1,positive:'true'}"
     session=driver.session()
     session.run(query2)
+
+
+
     query="CALL apoc.export.json.query("
-    q="MATCH p=(u{id:"+f"'{user_id}'"+"})-[:contact*..5]->(fr) RETURN relationships(p)"
+    q="MATCH p=(u{id:"+f"'{user_id}'"+"})-[:contact*..5]-(fr) RETURN relationships(p)"
 
     query="\"%s\""%q
     query="CALL apoc.export.json.query("+query+",null,{"+"stream:true})YIELD data "
@@ -128,7 +165,7 @@ def is_positive():
     
     for i in fr:
         a=i[0].split("\n")
-    print(a)    
+     
     if len(a[0]) >1:   
         contact_time_applicable={}    
         for i in a:
@@ -138,19 +175,20 @@ def is_positive():
             i=i["relationships(p)"]
             
             for j in i:
-                lvl,c_id,contact_properties,temp=len(i),j["end"] ,j["properties"],j["end"]#temp to store id of parent to check contact time
+                
+                lvl,c_id,contact_properties,temp=len(i),j['end'] ,j["properties"],j['end']#temp to store id of parent to check contact time
                 temp=temp["id"]
-                contact_time_applicable[temp]=contact_properties["start"]#d contains id and contact time
+                contact_time_applicable[temp]=contact_properties['old']#d contains id and contact time
                 c_id=c_id["id"]
             
             
             k=0    
-            if lvl==1 and ltime-contact_properties["start"]<24*60*28:
+            if lvl==1 and ltime-contact_properties['new']<24*60*28:
                 
                 k=1
                 e,prob=find_probability(c_id,lvl,contact_properties)
                 
-            elif lvl>1 and  contact_properties["start"]>=contact_time_applicable[c_id]:
+            elif lvl>1 and  contact_properties['new']>=contact_time_applicable[c_id]:
                 
                 k=1
                 e,prob=find_probability(c_id,lvl,contact_properties)
@@ -169,7 +207,7 @@ def police():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8")) 
     connections=data_recieved['connections']
-    print(connections)
+    
     for i,j in connections.items():
         if j>-100:
             query=f"MATCH (a:Person) WHERE a.id='{i}' Return a.probability"
