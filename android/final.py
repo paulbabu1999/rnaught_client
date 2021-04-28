@@ -98,7 +98,7 @@ def new_contact():
         begin=fr.data()[0]['r.new']
         if ltime-begin>30:
             k=1
-         
+          
 
         query="MATCH (a{ "+f"id:'{user_id}'"+" })-[r]-(b{ "+f"id:'{i}'"+" }) "+ f" SET r.dur={k}"
 
@@ -165,36 +165,58 @@ def is_positive():
     
     for i in fr:
         a=i[0].split("\n")
-     
-    if len(a[0]) >1:   
+    
+    if len(a[0]) >0:   
         contact_time_applicable={}    
         for i in a:
             
             i=json.loads(i)
             
             i=i["relationships(p)"]
-            
+            print(i)
             for j in i:
                 
-                lvl,c_id,contact_properties,temp=len(i),j['end'] ,j["properties"],j['end']#temp to store id of parent to check contact time
-                temp=temp["id"]
-                contact_time_applicable[temp]=contact_properties['old']#d contains id and contact time
-                c_id=c_id["id"]
+                lvl,c_id1,c_id2,contact_properties=len(i),j['end'] ,j['start'],j["properties"],#temp to store id of parent to check contact time
+                temp1=c_id1["id"]
+                temp2=c_id2["id"]
+                contact_time_applicable[temp1]=contact_properties['old']#d contains id and contact time
+                contact_time_applicable[temp2]=contact_properties['old']#d contains id and contact time
+
+                c_id1=c_id1["id"]
+                c_id2=c_id2["id"]
             
             
             k=0    
             if lvl==1 and ltime-contact_properties['new']<24*60*28:
                 
                 k=1
-                e,prob=find_probability(c_id,lvl,contact_properties)
-                
+                e1,prob1=find_probability(c_id1,lvl,contact_properties)
+                e2,prob2=find_probability(c_id2,lvl,contact_properties)
+                if e1:
+                    prob=prob1
+                    e=e1
+                    c_id=c_id1
+   
+                else:
+                    prob=prob2
+                    e=e2
+                    c_id=c_id2
             elif lvl>1 and  contact_properties['new']>=contact_time_applicable[c_id]:
                 
                 k=1
-                e,prob=find_probability(c_id,lvl,contact_properties)
+                e1,prob1=find_probability(c_id1,lvl,contact_properties)
+                e2,prob2=find_probability(c_id2,lvl,contact_properties)
+                if e1:
+                    e=e1
+                    prob=prob1
+                    c_id=c_id1
+                else:
+                    e=e2
+                    prob=prob2
+                    c_id=c_id2
             else:
                 pass    
-
+            
             if k==1 and e:
                 
                 query2=f"MATCH (a:Person) WHERE id(a)={c_id} SET a.probability={prob}"
