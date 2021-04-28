@@ -174,16 +174,16 @@ def is_positive():
             
             i=i["relationships(p)"]
             print(i)
-            for j in i:
+            j=i[-1]
                 
-                lvl,c_id1,c_id2,contact_properties=len(i),j['end'] ,j['start'],j["properties"],#temp to store id of parent to check contact time
-                temp1=c_id1["id"]
-                temp2=c_id2["id"]
-                contact_time_applicable[temp1]=contact_properties['old']#d contains id and contact time
-                contact_time_applicable[temp2]=contact_properties['old']#d contains id and contact time
+            lvl,c_id1,c_id2,contact_properties=len(i),j['end'] ,j['start'],j["properties"],#temp to store id of parent to check contact time
+            temp1=c_id1["id"]
+            temp2=c_id2["id"]
+            contact_time_applicable[temp1]=contact_properties['old']#d contains id and contact time
+            contact_time_applicable[temp2]=contact_properties['old']#d contains id and contact time
 
-                c_id1=c_id1["id"]
-                c_id2=c_id2["id"]
+            c_id1=c_id1["id"]
+            c_id2=c_id2["id"]
             
             
             k=0    
