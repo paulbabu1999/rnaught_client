@@ -80,16 +80,22 @@ def new_contact():
             q="MATCH  (a:Person { "+ f"id:'{user_id}'"+"}), (b:Person {id:"+f"'{i}' "+"}) RETURN EXISTS( (a)-[:contact]-(b) )"
             session=driver.session()
             fr=session.run(q)
-            if (fr.data()[0]['EXISTS( (a)-[:contact]-(b) )']):
-                q="MATCH  (:Person {id:"+f"'{user_id}'"+"})-[r:contact]-(:Person {id:"+f"'{i}'"+"}) Set r.new="+f"{ltime}"
-                session=driver.session()
-                session.run(q)
-
             
-            else:
-                query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}' CREATE (a)-[r:contact " +"{"+f"old:{ltime},new:{ltime},dur:0, humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
-                session=driver.session()
-                session.run(query)
+            print(fr.data())
+            for i in fr.data():
+                for _,j in i:
+
+
+                    if (j):
+                        q="MATCH  (:Person {id:"+f"'{user_id}'"+"})-[r:contact]-(:Person {id:"+f"'{i}'"+"}) Set r.new="+f"{ltime}"
+                        session=driver.session()
+                        session.run(q)
+
+                    
+                    else:
+                        query=f"MATCH (a:Person), (b:Person) WHERE a.id ='{user_id}'AND b.id = '{i}' CREATE (a)-[r:contact " +"{"+f"old:{ltime},new:{ltime},dur:0, humidity:'{humidity}',temperature:'{temperature}'"+"}]->(b)"
+                        session=driver.session()
+                        session.run(query)
     for i in disconnected_ids:
         k=0
         q="match(:Person{id:" f"'{user_id}'"+ " })-[r:contact]-(:Person{id:"+f"'{i}'"+"}) Return r.new"
