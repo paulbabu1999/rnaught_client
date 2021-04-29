@@ -81,7 +81,7 @@ def new_contact():
             session=driver.session()
             fr=session.run(q)
             
-            print(fr.data())
+            
             for i in fr.data():
                 for _,j in i:
 
@@ -102,14 +102,16 @@ def new_contact():
         session=driver.session()
         fr=session.run(q)
         begin=fr.data()[0]['r.new']
-        if ltime-begin>30:
-            k=1
-          
+        for i in fr.data():
+            for _,j in i:
+                if ltime-begin>30:
+                    k=1
+                    
 
-        query="MATCH (a{ "+f"id:'{user_id}'"+" })-[r]-(b{ "+f"id:'{i}'"+" }) "+ f" SET r.dur={k}"
+                query="MATCH (a{ "+f"id:'{user_id}'"+" })-[r]-(b{ "+f"id:'{i}'"+" }) "+ f" SET r.dur={k}"
 
-        session=driver.session()
-        session.run(query)
+                session=driver.session()
+                session.run(query)
 
 
 
