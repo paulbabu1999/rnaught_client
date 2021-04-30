@@ -137,8 +137,10 @@ def check_probability():
     query=f"MATCH (a:Person) WHERE a.id='{user_id}' Return a.probability"
     session=driver.session()
     val=session.run(query)
-    
-    return jsonify(val.data()[0])
+    val=val.data()
+    val=val[0]
+    val=int(val['a.probability']*100)
+    return jsonify(val)
     
 @app.route("/positive",methods=['POST'])
 def is_positive():
