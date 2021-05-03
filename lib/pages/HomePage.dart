@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ffi';
 import 'package:http/http.dart' as http;
 import 'package:covid_19/Globals.dart' as Globals;
 import 'dart:convert';
@@ -87,7 +88,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Send UUIDS to server on repeated intervals
-    _sendToServerTimer = new Timer.periodic(Duration(seconds: 10), (timer) { sendUUIDSToServer(); });
+    _sendToServerTimer = new Timer.periodic(Duration(seconds: 30), (timer) { sendUUIDSToServer(); });
   }
 
   void startBeaconServices(uuid){
@@ -100,7 +101,7 @@ class _HomePageState extends State<HomePage> {
 
 
   void getProbability(){
-    int probability;
+    String probability;
     Map body = {
       "user_id": userid,
     }; 
@@ -110,9 +111,9 @@ class _HomePageState extends State<HomePage> {
         body: json.encode(body)
       )
       .then((response) async{
-        final decoded = json.decode(response.body) as Map;
+        final decoded = json.decode(response.body) as String;
         setState(() {
-            probability = decoded['a.probability'];
+            probability = decoded;
           });
         showProbability(probability);
       }).catchError((e){
@@ -121,7 +122,7 @@ class _HomePageState extends State<HomePage> {
       
   }
 
-  Future<void> showProbability(int val) async {
+  Future<void> showProbability(String val) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -229,8 +230,8 @@ class _HomePageState extends State<HomePage> {
     }
 
     //Map location  = getMyCoordinates();
-    String temperature  = '10';
-    int humidity = 1;
+    String temperature  = "10";
+    String humidity = "Low";
 
 
     Map body = {
@@ -242,6 +243,7 @@ class _HomePageState extends State<HomePage> {
     }; 
 
     print("Sending data to server");
+    print(json.encode(body));
     http.post(
         Globals.ip_address+'new_contact',
         headers: {"Content-Type": "application/json"},

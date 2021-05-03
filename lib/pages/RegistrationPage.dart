@@ -37,12 +37,8 @@ class _RegistrationPageState extends State<RegistrationPage> {
 
   }
   void registerButton(){
-    String gen =_genderController.text;
+    String gender =_genderController.text;
     int age = int.tryParse(_ageController.text);
-    int gender = 1;
-    if(gen == "male" || gen =="Male"){
-      gender = 0;
-    }
 
     Map body = {
       "gender": gender,
