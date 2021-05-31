@@ -1,5 +1,6 @@
 import 'dart:async';
-import 'dart:ffi';
+//import 'dart:ffi';
+import 'package:covid_19/pages/PolicePage.dart';
 import 'package:http/http.dart' as http;
 import 'package:covid_19/Globals.dart' as Globals;
 import 'dart:convert';
@@ -101,7 +102,7 @@ class _HomePageState extends State<HomePage> {
 
 
   void getProbability(){
-    String probability;
+    int probability;
     Map body = {
       "user_id": userid,
     }; 
@@ -111,7 +112,7 @@ class _HomePageState extends State<HomePage> {
         body: json.encode(body)
       )
       .then((response) async{
-        final decoded = json.decode(response.body) as String;
+        final decoded = json.decode(response.body) as int;
         setState(() {
             probability = decoded;
           });
@@ -122,7 +123,7 @@ class _HomePageState extends State<HomePage> {
       
   }
 
-  Future<void> showProbability(String val) async {
+  Future<void> showProbability(int val) async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -212,6 +213,48 @@ class _HomePageState extends State<HomePage> {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
       });
   }
+
+
+  void othersProbability(){
+
+    Map<String,int> probabilityList;
+
+    print("Trying to send data");
+
+    
+    Map<String,int> newConnections = Map.fromEntries(recentlyRecievedUUIDS.entries
+      .where((element) => !recentlySentUUIDs.contains(element.key))
+      .map((e) => MapEntry(e.key, e.value)));
+
+
+    if(newConnections.keys.isEmpty){
+      print("No data to send");
+      return;
+    }
+
+    Map body = {
+      "connections": newConnections,
+    }; 
+
+    print("Sending data to server");
+    print(json.encode(body));
+    http.post(
+        Globals.ip_address+'police',
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(body)
+    )
+    .then((response) async{
+        final decoded = json.decode(response.body) as Map<String,int>;
+        setState(() {
+            probabilityList = decoded;
+          });
+        Navigator.push(context, MaterialPageRoute(builder: (context) => PolicePage(probabilityList: probabilityList)));
+    }).catchError((e){
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
+    });
+
+  }
+
 
   void sendUUIDSToServer(){
     print("Trying to send data");
@@ -372,6 +415,16 @@ class _HomePageState extends State<HomePage> {
                   child: Text("Covid Verification (Doctors only)"),
                   style: ElevatedButton.styleFrom(
                     primary: Colors.red, // background
+                    onPrimary: Colors.white, // foreground
+                  ),
+                ),
+
+
+                ElevatedButton(
+                  onPressed: othersProbability,
+                  child: Text("Probaility Verification (Officials only)"),
+                  style: ElevatedButton.styleFrom(
+                    primary: Colors.blueGrey, // background
                     onPrimary: Colors.white, // foreground
                   ),
                 ),
