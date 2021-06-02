@@ -1,26 +1,26 @@
 import uuid
 from flask import Flask,request,jsonify
 from neo4j import GraphDatabase, basic_auth
-from time import time,ctime
-import datetime
+from datetime import datetime
 import json
 from collections import defaultdict
 def current_time():
-    d = datetime.datetime.now()
-    month=d.strftime("%m")
-    t=time()
-    ltime=ctime(t).split(" ")
-    atime=ltime[3].split(":")
-    atime=int(atime[0])*60+int(atime[1])
-    date=(int(ltime[-1])*10000+int(month)*100+int(ltime[2]))*3600
-    ltime=date+atime
+    now = datetime.now()
+ 
+    
+
+    # dd/mm/YY H:M:S
+    dt_string = now.strftime("%d %m %Y %H %M %S")
+    dt_string=list(map(int,dt_string.split(" ")))
+    
+    ltime=dt_string[-2]+dt_string[-3]*60 + dt_string[0]*3600+dt_string[1]*3600*30+dt_string[2]*365*3600
     return ltime
 
 
 def find_probability(a):
-    return .31 
+    return .92/int(a[1])
 
-
+ 
     
     
 
@@ -28,7 +28,7 @@ def find_probability(a):
       
 app=Flask(__name__)
 people={}
-id_new=0
+id_new=0 
 driver = GraphDatabase.driver(
   "bolt://107.22.134.61:7687",
   auth=basic_auth("neo4j", "tube-spill-magazines"))
@@ -56,7 +56,7 @@ def register_user():
     session=driver.session()
     session.run(query)
     return jsonify({"user_id":user_id})
-prev_ids={}
+
 
 @app.route("/new_contact",methods=['POST'])
 def new_contact():
@@ -141,6 +141,7 @@ def is_positive():
     q=f"match(u) where u.id='{user_id}' remove {temp} set u:Positive:{virus_type} set u.probability=1"
     runquery(q)
  
+    
     query="CALL apoc.export.json.query("
     q="MATCH p=({id:"+f"'{user_id}'"+"})-[r:contact*..5]-(fr) return relationships(p),length(p),nodes(p)"
     query="\"%s\""%q
@@ -150,18 +151,61 @@ def is_positive():
     fr=fr[0]['data']
 
     if fr:
-    
+
         fr=fr.split("\n")
         fr=list(map(json.loads,fr))
-        
+        dat=[]
+        visited=set()
+        prev_times={}
         for i in fr:
-            
-            if i['length(p)']>1:
-                pass 
+            dat.append((i['relationships(p)'][-1],i['length(p)']))
+        dat.sort(key=lambda x:x[1])    
+        for i in dat:    
+            if i[1]>1:
+                if i[0]['start']['id'] in visited and i[0]['end']['id'] in visited:#checks if already in previous lvl
+                    continue
+                if i[0]['start']['id'] in prev_times :
+                    id_start=i[0]['start']['id'] 
+                    id_end=i[0]['end']['id']                           #finds the id of start node and end node
+                elif i[0]['end']['id'] in prev_times:
+                    id_start=i[0]['end']['id']
+                    id_end=i[0]['start']['id'] 
+                else:
+                    continue
+                visited.add(id_end)
+                first_contact_times=i[0]['properties']['contact_times'].split("\n")
+                temp=[]
+                for p in first_contact_times:
+                    temp.append(int(p.split(":")[0]))
+                flag=0
+                first_contact_times=temp
+                
+                for j in range(len(first_contact_times)): 
+                    if first_contact_times[j]>=prev_times[id_start]:
+                        contact_time=first_contact_times[j]
+                        flag=1
+                        break
+                if flag:    
+                    prob=find_probability(i)  
+                    q=f"match(u) where id(u)={id_end} return labels(u),u.probability"
+                    q_res=runquery(q)[0]
+                    prob_end=q_res['u.probability']
+                    if prob>prob_end:
+                        prev_times[id_end]=contact_time
+                        q=f"MATCH (a:Person) WHERE id(a)={id_end} SET a.probability={prob} set a:{virus_type}"
+                        runquery(q)
+
+
+
+
+              
+
             else:
-                first_contact_times=i['relationships(p)'][-1]['properties']['contact_times'].split("\n")
-                id_start=i['relationships(p)'][-1]['start']['id']
-                id_end=i['relationships(p)'][-1]['end']['id']
+                first_contact_times=i[0]['properties']['contact_times'].split("\n")
+                id_start=i[0]['start']['id']
+                id_end=i[0]['end']['id']
+                visited.add(id_end)
+                visited.add(id_start)
                 q=f"match(u) where id(u)={id_start} return labels(u),u.probability"
                 q_res=runquery(q)[0]
                 labels_start=q_res['labels(u)']
@@ -170,17 +214,20 @@ def is_positive():
                 q_res=runquery(q)[0]
                 labels_end=q_res['labels(u)'] 
                 prob_end=q_res['u.probability']
-
+                
                 if current_time()-int(first_contact_times[-1].split(":")[0])<14*3600 and prob_start!=prob_end:
-                    prob=find_probability(i['relationships(p)'][-1]['properties'])
+                    prob=find_probability(i)
+                    print(prob_end,prob_start)
                     if prob_start<prob_end and prob_start<prob:
+                        prev_times[id_start]=int(first_contact_times[-1].split(":")[0])
                         q=f"MATCH (a:Person) WHERE id(a)={id_start} SET a.probability={prob} set a:{virus_type}"
                         runquery(q)
                     elif prob_end<prob:
+                        prev_times[id_end]=int(first_contact_times[-1].split(":")[0])
+                        
                         q=f"MATCH (a:Person) WHERE id(a)={id_end} SET a.probability={prob} set a:{virus_type}"
                         runquery(q)
-
-
+    print(visited,prev_times)
     return jsonify(201)
 @app.route("/police",methods=['POST'])
 def police():
