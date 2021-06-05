@@ -16,7 +16,6 @@ import 'package:flutter_beacon/flutter_beacon.dart' as flutter_beacon;
 //import 'package:geolocation/geolocation.dart';
 //import 'package:weather/weather.dart';
 
-
 class HomePage extends StatefulWidget {
   @override
   _HomePageState createState() => _HomePageState();
@@ -35,15 +34,15 @@ class _HomePageState extends State<HomePage> {
   double lat;
   double long;
 
-  
   // States
   bool isBluetoothOn = false;
   bool isLocationOn = false;
-  bool isAdvertising = false; 
+  bool isAdvertising = false;
   String userid;
 
-  Map<String,int> recentlyRecievedUUIDS = {};  
+  Map<String, int> recentlyRecievedUUIDS = {};
   Set<String> recentlySentUUIDs = new Set<String>();
+  Map<String, int> selectedUUIDS = {};
 
   // Methods
   @override
@@ -52,35 +51,34 @@ class _HomePageState extends State<HomePage> {
     initApp();
   }
 
-
-  void initApp() async{
-    PermissionStatus permission = await LocationPermissions().checkPermissionStatus();
-    if(permission == PermissionStatus.granted || permission == PermissionStatus.restricted){
-        setState(() {
-          isLocationOn = true;
-        });
-    }
-    else{
+  void initApp() async {
+    PermissionStatus permission =
+        await LocationPermissions().checkPermissionStatus();
+    if (permission == PermissionStatus.granted ||
+        permission == PermissionStatus.restricted) {
+      setState(() {
+        isLocationOn = true;
+      });
+    } else {
       await LocationPermissions().requestPermissions();
       initApp();
     }
-    
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    String uuid = prefs.getString('uid'); 
+    String uuid = prefs.getString('uid');
     setState(() {
       userid = uuid;
     });
 
-
     // Wait for bluetooth to turn on
-    bluetoothStateChangeStream =  FlutterBlue.instance.state.listen((bluetoothState) {
-      if(bluetoothState == BluetoothState.on){
+    bluetoothStateChangeStream =
+        FlutterBlue.instance.state.listen((bluetoothState) {
+      if (bluetoothState == BluetoothState.on) {
         setState(() {
           isBluetoothOn = true;
         });
         startBeaconServices(uuid);
-      }
-      else{
+      } else {
         setState(() {
           isBluetoothOn = false;
         });
@@ -89,38 +87,39 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Send UUIDS to server on repeated intervals
-    _sendToServerTimer = new Timer.periodic(Duration(seconds: 30), (timer) { sendUUIDSToServer(); });
+    _sendToServerTimer = new Timer.periodic(Duration(minutes: 1), (timer) {
+      durationApproximation();
+    });
   }
 
-  void startBeaconServices(uuid){
+  void startBeaconServices(uuid) {
     startBeaconAdvertising(uuid);
     listenForBeacons();
   }
-  void stopBeaconServices(){
+
+  void stopBeaconServices() {
     beaconBroadcast.stop();
   }
 
-
-  void getProbability(){
+  void getProbability() {
     int probability;
     Map body = {
       "user_id": userid,
-    }; 
-    http.post(
-        Globals.ip_address+'probability',
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(body)
-      )
-      .then((response) async{
-        final decoded = json.decode(response.body) as int;
-        setState(() {
-            probability = decoded;
-          });
-        showProbability(probability);
-      }).catchError((e){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
+    };
+    http
+        .post(Globals.ip_address + 'probability',
+            headers: {"Content-Type": "application/json"},
+            body: json.encode(body))
+        .then((response) async {
+      final decoded = json.decode(response.body) as int;
+      setState(() {
+        probability = decoded;
       });
-      
+      showProbability(probability);
+    }).catchError((e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Can't connect to server")));
+    });
   }
 
   Future<void> showProbability(int val) async {
@@ -130,8 +129,7 @@ class _HomePageState extends State<HomePage> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Covid Infection Probability'),
-          content: 
-                Text('You have $val% chance of having covid'),
+          content: Text('You have $val% chance of having covid'),
           actions: <Widget>[
             TextButton(
               child: Text('Close'),
@@ -150,23 +148,41 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> verification(BuildContext context) async {
-    TextEditingController verifyFieldController = TextEditingController();
-    String valueText;
+    TextEditingController verifyFieldController1 = TextEditingController();
+    TextEditingController verifyFieldController2 = TextEditingController();
+    String valueCode;
+    String valueType;
     String docCode;
+    String typeVirus;
     return showDialog(
         context: context,
         barrierDismissible: false,
         builder: (context) {
           return AlertDialog(
             title: Text('Covid Confirmation'),
-            content: TextField(
-              onChanged: (value) {
-                setState(() {
-                  valueText = value;
-                });
-              },
-              controller: verifyFieldController,
-              decoration: InputDecoration(hintText: "Enter your secret number"),
+            content: Column(
+              children: [
+                TextField(
+                  onChanged: (value1) {
+                    setState(() {
+                      valueCode = value1;
+                    });
+                  },
+                  controller: verifyFieldController1,
+                  decoration:
+                      InputDecoration(hintText: "Enter your secret number"),
+                ),
+                TextField(
+                  onChanged: (value2) {
+                    setState(() {
+                      valueType = value2;
+                    });
+                  },
+                  controller: verifyFieldController2,
+                  decoration:
+                      InputDecoration(hintText: "Enter the virus type"),
+                ),
+              ],
             ),
             actions: <Widget>[
               TextButton(
@@ -181,235 +197,254 @@ class _HomePageState extends State<HomePage> {
                 child: Text('OK'),
                 onPressed: () {
                   setState(() {
-                    docCode = valueText;
+                    docCode = valueCode;
+                    typeVirus = valueType;
                     Navigator.pop(context);
                   });
-                  sendVerificationToServer(docCode);
+                  sendVerificationToServer(docCode, typeVirus);
                 },
               ),
-
             ],
           );
-        }
-      );
+        });
   }
 
-
-  void sendVerificationToServer(String docCode) {
+  void sendVerificationToServer(String docCode, String typeVirus) {
     Map body = {
       "user_id": userid,
       "code": docCode,
-    }; 
-    http.post(
-        Globals.ip_address+'positive',
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(body)
-      )
-      .then((response) async{
-        final decoded = json.decode(response.body);
-        print(decoded);//test
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Verified as Covid Positive")));
-      }).catchError((e){
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
-      });
+      "virus_type": typeVirus
+    };
+    http
+        .post(Globals.ip_address + 'positive',
+            headers: {"Content-Type": "application/json"},
+            body: json.encode(body))
+        .then((response) async {
+      final decoded = json.decode(response.body);
+      print(decoded); //test
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Verified as Covid Positive")));
+    }).catchError((e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Can't connect to server")));
+    });
   }
 
-
-  void othersProbability(){
-
-    Map<String,int> probabilityList;
+  void othersProbability() {
+    Map<String, int> probabilityList = {};
 
     print("Trying to send data");
 
-    
-    Map<String,int> newConnections = Map.fromEntries(recentlyRecievedUUIDS.entries
-      .where((element) => !recentlySentUUIDs.contains(element.key))
-      .map((e) => MapEntry(e.key, e.value)));
+    Map<String, int> newConnections = Map.fromEntries(recentlyRecievedUUIDS
+        .entries
+        .where((element) => !recentlySentUUIDs.contains(element.key))
+        .map((e) => MapEntry(e.key, e.value)));
 
-
-    if(newConnections.keys.isEmpty){
+    if (newConnections.keys.isEmpty) {
       print("No data to send");
       return;
     }
 
     Map body = {
       "connections": newConnections,
-    }; 
+    };
 
     print("Sending data to server");
     print(json.encode(body));
-    http.post(
-        Globals.ip_address+'police',
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(body)
-    )
-    .then((response) async{
-        final decoded = json.decode(response.body) as Map<String,int>;
-        setState(() {
-            probabilityList = decoded;
-          });
-        Navigator.push(context, MaterialPageRoute(builder: (context) => PolicePage(probabilityList: probabilityList)));
-    }).catchError((e){
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
+    http
+        .post(Globals.ip_address + 'police',
+            headers: {"Content-Type": "application/json"},
+            body: json.encode(body))
+        .then((response) async {
+      final decoded = json.decode(response.body) as Map<String, int>;
+      setState(() {
+        probabilityList = decoded;
+        recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
+      });
+      Navigator.push(
+          context,
+          MaterialPageRoute(
+              builder: (context) =>
+                  PolicePage(probabilityList: probabilityList)));
+    }).catchError((e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Can't connect to server")));
     });
-
   }
 
+  void durationApproximation() {
+    int count = 1;
+    Map<String, int> closerUUIDS;
+    Map<String, int> temp1UUIDS;
+    Map<String, int> temp2UUIDS;
 
-  void sendUUIDSToServer(){
+    for (MapEntry e in recentlyRecievedUUIDS.entries) {
+      if (e.value > -(100)) {
+        closerUUIDS[e.key] = count;
+      }
+    }
+
+    if (temp1UUIDS.keys.isEmpty) {
+      temp1UUIDS = Map.from(closerUUIDS);
+    } else if (temp2UUIDS.keys.isEmpty) {
+      for (MapEntry e in closerUUIDS.entries) {
+        if (temp1UUIDS.containsKey(e.key)) {
+          temp2UUIDS[e.key] = e.value + count;
+        }
+      }
+      temp1UUIDS = Map.from(closerUUIDS);
+    } else {
+      for (MapEntry e in closerUUIDS.entries) {
+        if (temp2UUIDS.containsKey(e.key)) {
+          temp2UUIDS[e.key] += count;
+        } else if (temp1UUIDS.containsKey(e.key)) {
+          temp2UUIDS[e.key] = e.value + count;
+        }
+      }
+      temp1UUIDS = Map.from(closerUUIDS);
+      for (MapEntry e in temp2UUIDS.entries) {
+        if (!(closerUUIDS.containsKey(e.key))) {
+          setState(() {
+            selectedUUIDS[e.key] = e.value;
+          });
+        }
+      }
+    }
+
     print("Trying to send data");
-
-    
-    // Remove this: Set<String> newUuids = recentlyRecievedUUIDS.difference(recentlySentUUIDs);
-    Map<String,int> newConnections = Map.fromEntries(recentlyRecievedUUIDS.entries
-      .where((element) => !recentlySentUUIDs.contains(element.key))
-      .map((e) => MapEntry(e.key, e.value)));
-
-    Set<String> disconnectedUuids = recentlySentUUIDs.difference(recentlyRecievedUUIDS.keys.toSet());
-
-    if(newConnections.keys.isEmpty && disconnectedUuids.isEmpty){
+    if (selectedUUIDS.keys.isEmpty) {
       print("No data to send");
       return;
     }
 
-    //Map location  = getMyCoordinates();
-    String temperature  = "10";
-    String humidity = "Low";
+    sendUUIDSToServer();
+  }
 
+  void sendUUIDSToServer() {
+    //Map location  = getMyCoordinates();
+    String temperature = "10";
+    String humidity = "Low";
 
     Map body = {
       "user_id": userid,
       "temperature": temperature,
       "humidity": humidity,
-      "connections": newConnections,
-      "disconnections": disconnectedUuids.toList()
-    }; 
+      "connections": selectedUUIDS,
+    };
 
     print("Sending data to server");
     print(json.encode(body));
-    http.post(
-        Globals.ip_address+'new_contact',
-        headers: {"Content-Type": "application/json"},
-        body: json.encode(body)
-    )
-    .then((response) async{
-        setState(() {
-          recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
-        });
-    }).catchError((e){
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content:Text("Can't connect to server")));
+    http
+        .post(Globals.ip_address + 'new_contact',
+            headers: {"Content-Type": "application/json"},
+            body: json.encode(body))
+        .then((response) async {
+      setState(() {
+        selectedUUIDS.clear();
+      });
+    }).catchError((e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("Can't connect to server")));
     });
-
   }
 
 //Location
 //Now Create Method named _getCurrentLocation with async Like Below.
   //_getCurrentLocation() async {
-    //Geolocation.currentLocation(accuracy: LocationAccuracy.best)
-      //  .listen((result) {
-     // if (result.isSuccessful) {
-      //  setState(() {
-       //   lat = result.location.latitude;
-        //  long = result.location.longitude;
-        //});
-     // }
-    //});
- // }
+  //Geolocation.currentLocation(accuracy: LocationAccuracy.best)
+  //  .listen((result) {
+  // if (result.isSuccessful) {
+  //  setState(() {
+  //   lat = result.location.latitude;
+  //  long = result.location.longitude;
+  //});
+  // }
+  //});
+  // }
 
   //Map getMyCoordinates(){
-   // _getCurrentLocation();
-    //String latitude = lat.toString();
-    //String longitude = long.toString();
+  // _getCurrentLocation();
+  //String latitude = lat.toString();
+  //String longitude = long.toString();
 
-    //return {"latitude":latitude,"longitude":longitude};
+  //return {"latitude":latitude,"longitude":longitude};
   //}
 
 //Temperature
- // Future<String> getTemp() async {
-   // WeatherFactory wf = new WeatherFactory(myKey);
-   // Weather w = await wf.currentWeatherByLocation(lat, long);
-   // String temp = w.temperature.celsius.toString();
-   // return temp;
+  // Future<String> getTemp() async {
+  // WeatherFactory wf = new WeatherFactory(myKey);
+  // Weather w = await wf.currentWeatherByLocation(lat, long);
+  // String temp = w.temperature.celsius.toString();
+  // return temp;
   //}
-  
 
-
-  void startBeaconAdvertising(uuid){
+  void startBeaconAdvertising(uuid) {
     beaconBroadcast
-      .setUUID(uuid)
-      .setMajorId(1)
-      .setMinorId(100)
-      .setLayout('m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24')
-      .setManufacturerId(0x004c)
-      .start().then((value){
-            print("Advertising Beacon with uuid= $uuid");
-      });
-
-
+        .setUUID(uuid)
+        .setMajorId(1)
+        .setMinorId(100)
+        .setLayout('m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24')
+        .setManufacturerId(0x004c)
+        .start()
+        .then((value) {
+      print("Advertising Beacon with uuid= $uuid");
+    });
 
     beaconBroadcast.getAdvertisingStateChange().listen((advertisingStatus) {
-        setState(() {
-          isAdvertising = advertisingStatus; 
-        });
+      setState(() {
+        isAdvertising = advertisingStatus;
+      });
     });
   }
 
-
-  void listenForBeacons() async{
+  void listenForBeacons() async {
     await flutter_beacon.flutterBeacon.initializeScanning;
     final regions = <flutter_beacon.Region>[
-      flutter_beacon.Region(identifier: 'ibeacon' )
+      flutter_beacon.Region(identifier: 'ibeacon')
     ];
 
-
-
-    _streamBeaconRanging = flutter_beacon.flutterBeacon.ranging(regions).listen((flutter_beacon.RangingResult result) {
+    _streamBeaconRanging = flutter_beacon.flutterBeacon
+        .ranging(regions)
+        .listen((flutter_beacon.RangingResult result) {
       setState(() {
-        recentlyRecievedUUIDS = Map.fromEntries(result.beacons.map((e) => MapEntry(e.proximityUUID, e.rssi)));
+        recentlyRecievedUUIDS = Map.fromEntries(
+            result.beacons.map((e) => MapEntry(e.proximityUUID, e.rssi)));
       });
     });
-
   }
 
   @override
   Widget build(BuildContext context) {
-    if(userid == null) return Container();
-
+    if (userid == null)
+      return Container();
     else
       return SafeArea(
         child: Scaffold(
-          body: Center(
-            child: Column(
+            body: Center(
+          child: Column(
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-
-                if(isBluetoothOn != true)
+                if (isBluetoothOn != true)
                   Column(
                     children: [
-                      Icon(Icons.bluetooth,color: Colors.red,size: 30),
+                      Icon(Icons.bluetooth, color: Colors.red, size: 30),
                       Text("Please turn your bluetooth on"),
                       SizedBox(height: 100)
                     ],
                   ),
-
-                if(isAdvertising == true)
+                if (isAdvertising == true)
                   Column(
                     children: [
-                      Icon(Icons.bluetooth,color: Colors.green,size: 30),
+                      Icon(Icons.bluetooth, color: Colors.green, size: 30),
                       Text("Your uid is visible to nearby phones"),
                       SizedBox(height: 100)
                     ],
                   ),
-
-
                 ElevatedButton(
-                  onPressed: getProbability,
-                  child: Text("Get My Covid Probability")
-                ),
-
-                
+                    onPressed: getProbability,
+                    child: Text("Get My Covid Probability")),
                 ElevatedButton(
                   onPressed: iamCovidPositive,
                   child: Text("Covid Verification (Doctors only)"),
@@ -418,8 +453,6 @@ class _HomePageState extends State<HomePage> {
                     onPrimary: Colors.white, // foreground
                   ),
                 ),
-
-
                 ElevatedButton(
                   onPressed: othersProbability,
                   child: Text("Probaility Verification (Officials only)"),
@@ -428,19 +461,17 @@ class _HomePageState extends State<HomePage> {
                     onPrimary: Colors.white, // foreground
                   ),
                 ),
-
                 SizedBox(height: 30),
-                
-                Text(recentlyRecievedUUIDS.entries.map((e)=>e.key + "\t:\t" + e.value.toString()).join("\n"))
-                
-              ]
-            ),
-          )
-        ),
+                Text(recentlyRecievedUUIDS.entries
+                    .map((e) => e.key + "\t:\t" + e.value.toString())
+                    .join("\n"))
+              ]),
+        )),
       );
   }
+
   @override
-  void dispose(){
+  void dispose() {
     super.dispose();
     _streamBeaconRanging.cancel().onError((error, stackTrace) => null);
     bluetoothStateChangeStream.cancel();
