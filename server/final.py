@@ -71,6 +71,7 @@ def new_contact():
     
     for m in connected_ids:
         duration=connected_ids[m]
+        m = m.lower()
         query="MATCH (x{id:"+f"'{user_id}'"+"})-[r:contact]-(z{id:"+f"'{m}'"+"}) RETURN properties(r)"
         session=driver.session()
         fr=session.run(query)
@@ -228,8 +229,9 @@ def is_positive():
                         
                         q=f"MATCH (a:Person) WHERE id(a)={id_end} SET a.probability={prob} set a:{virus_type}"
                         runquery(q)
-    print(visited,prev_times)
+    ##print(visited,prev_times)
     return jsonify(201)
+
 @app.route("/police",methods=['POST'])
 def police():
     d={}
@@ -238,6 +240,7 @@ def police():
     connections=data_recieved['connections']
      
     for i,j in connections.items():
+        i = i.lower()
         if int(j)>-100:
             query=f"MATCH (a:Person) WHERE a.id='{i}' Return a.probability"
             session=driver.session()
@@ -248,6 +251,12 @@ def police():
                 val=val["a.probability"]
                 val=int(val*100)
                 d[i]=val
+                ##test
+                print("Police test")
+                print(type(d[i]))
+    ##test
+    print("Police Dict")
+    print(d)
 
     return jsonify(d)
 app.run(debug=True,host='0.0.0.0',port=5000)   
