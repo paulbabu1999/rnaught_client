@@ -42,7 +42,7 @@ class _HomePageState extends State<HomePage> {
 
   Map<String, int> recentlyRecievedUUIDS = {};
   Set<String> recentlySentUUIDs = new Set<String>();
-  Map<String, int> selectedUUIDS = {};
+  Map<String, String> selectedUUIDS = {};
 
   // Methods
   @override
@@ -87,7 +87,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Send UUIDS to server on repeated intervals
-    _sendToServerTimer = new Timer.periodic(Duration(minutes: 1), (timer) {
+    _sendToServerTimer = new Timer.periodic(Duration(milliseconds: 10 ), (timer) {
       durationApproximation();
     });
   }
@@ -102,34 +102,62 @@ class _HomePageState extends State<HomePage> {
   }
 
   void getProbability() {
-    int probability;
+    Map<String,int> probabilities;
     Map body = {
       "user_id": userid,
     };
+    print("Sending PROBABILITY data to server");
+    print(json.encode(body));
     http
         .post(Globals.ip_address + 'probability',
             headers: {"Content-Type": "application/json"},
             body: json.encode(body))
         .then((response) async {
-      final decoded = json.decode(response.body) as int;
+      final decoded = json.decode(response.body) as Map<String,int>;
       setState(() {
-        probability = decoded;
+        probabilities = decoded;
       });
-      showProbability(probability);
+      if (probabilities.keys.isEmpty){
+        noDisease();
+      }
+      else{
+        showProbability(probabilities);
+      }
     }).catchError((e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Can't connect to server")));
     });
   }
 
-  Future<void> showProbability(int val) async {
+  Future<void> noDisease() async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Covid Infection Probability'),
-          content: Text('You have $val% chance of having covid'),
+          content: Text('You are not at risk of any infection'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> showProbability(Map<String,int> values) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Covid Infection Probability'),
+          content: Text('You have following chance of having each disease \n $values'),
           actions: <Widget>[
             TextButton(
               child: Text('Close'),
@@ -215,6 +243,8 @@ class _HomePageState extends State<HomePage> {
       "code": docCode,
       "virus_type": typeVirus
     };
+    print("Sending VERIFICATION data to server");
+    print(json.encode(body));
     http
         .post(Globals.ip_address + 'positive',
             headers: {"Content-Type": "application/json"},
@@ -233,7 +263,7 @@ class _HomePageState extends State<HomePage> {
   void othersProbability() {
     Map<String, int> probabilityList = {};
 
-    print("Trying to send data");
+    print("Trying to send POLICE data");
 
     Map<String, int> newConnections = Map.fromEntries(recentlyRecievedUUIDS
         .entries
@@ -249,7 +279,7 @@ class _HomePageState extends State<HomePage> {
       "connections": newConnections,
     };
 
-    print("Sending data to server");
+    print("Sending POLICE data to server");
     print(json.encode(body));
     http
         .post(Globals.ip_address + 'police',
@@ -274,22 +304,22 @@ class _HomePageState extends State<HomePage> {
 
   void durationApproximation() {
     int count = 1;
-    Map<String, int> closerUUIDS;
-    Map<String, int> temp1UUIDS;
-    Map<String, int> temp2UUIDS;
+    Map<String, int> closerUUIDS = {};
+    Map<String, int> temp1UUIDS = {};
+    Map<String, int> temp2UUIDS = {};
 
     for (MapEntry e in recentlyRecievedUUIDS.entries) {
-      if (e.value > -(100)) {
+      if (e.value > -100) {
         closerUUIDS[e.key] = count;
       }
     }
-
+    print(closerUUIDS);
     if (temp1UUIDS.keys.isEmpty) {
       temp1UUIDS = Map.from(closerUUIDS);
     } else if (temp2UUIDS.keys.isEmpty) {
       for (MapEntry e in closerUUIDS.entries) {
         if (temp1UUIDS.containsKey(e.key)) {
-          temp2UUIDS[e.key] = e.value + count;
+          temp2UUIDS[e.key] = (e.value) + count;
         }
       }
       temp1UUIDS = Map.from(closerUUIDS);
@@ -298,20 +328,22 @@ class _HomePageState extends State<HomePage> {
         if (temp2UUIDS.containsKey(e.key)) {
           temp2UUIDS[e.key] += count;
         } else if (temp1UUIDS.containsKey(e.key)) {
-          temp2UUIDS[e.key] = e.value + count;
+          temp2UUIDS[e.key] = (e.value) + count;
         }
       }
       temp1UUIDS = Map.from(closerUUIDS);
       for (MapEntry e in temp2UUIDS.entries) {
         if (!(closerUUIDS.containsKey(e.key))) {
           setState(() {
-            selectedUUIDS[e.key] = e.value;
+            selectedUUIDS[e.key] = e.value.toString();
           });
         }
       }
     }
-
-    print("Trying to send data");
+    print(temp1UUIDS);
+    print(temp2UUIDS);
+    print(selectedUUIDS);
+    print("Trying to send CONTACT data");
     if (selectedUUIDS.keys.isEmpty) {
       print("No data to send");
       return;
@@ -321,6 +353,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void sendUUIDSToServer() {
+
     //Map location  = getMyCoordinates();
     String temperature = "10";
     String humidity = "Low";
@@ -332,7 +365,7 @@ class _HomePageState extends State<HomePage> {
       "connections": selectedUUIDS,
     };
 
-    print("Sending data to server");
+    print("Sending CONTACT data to server");
     print(json.encode(body));
     http
         .post(Globals.ip_address + 'new_contact',
