@@ -44,7 +44,7 @@ def findsource(user_id):
 
 @app.route("/register",methods=['POST'])
 def register_user():
-    probability=0
+    probability=0 
     data_recieved =request.data
    
     data_recieved=json.loads(data_recieved.decode("utf-8"))
@@ -76,10 +76,11 @@ def new_contact():
         fr=session.run(query)
         fr= fr.data()
         if fr:
-            fr=fr[0]['properties(r)']['contact_times']
+            fr=fr[0]['properties(r)']['contact_times']  
             fr=fr.split("\n")
             fr.append(f"{current_time()}:{duration}")
             contact_time_list="\n".join(fr)
+            print(contact_time_list)
             q="MATCH  (:Person {id:"+f"'{user_id}'"+"})-[r:contact]-(:Person {id:"+f"'{m}'"+"}) Set r.contact_times="+f"'{contact_time_list}'"
             session=driver.session()
             session.run(q)
@@ -90,7 +91,7 @@ def new_contact():
             session.run(query)
 
     
-    
+    print(contact_time_list)
     return jsonify(200)
 
 @app.route("/probability",methods=['POST']) 
@@ -105,7 +106,7 @@ def check_probability():
     session=driver.session()
     fr=session.run(query)
     fr= fr.data()
-    virus_type=[]
+    virus_type={}
     if fr:
         fr=fr[0]
         val=fr['n.probability']
@@ -114,9 +115,9 @@ def check_probability():
             if i=="Positive" or i=="Person":
                 continue
 
-            virus_type.append(i)
+            virus_type[i]=val
             
-    return jsonify(val,virus_type)
+    return jsonify(virus_type)
     
 @app.route("/positive",methods=['POST'])
 def is_positive():
@@ -245,6 +246,7 @@ def police():
             if len(val)>0:
                 val=val[0] 
                 val=val["a.probability"]
+                val=int(val*100)
                 d[i]=val
 
     return jsonify(d)
