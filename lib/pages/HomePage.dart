@@ -44,6 +44,10 @@ class _HomePageState extends State<HomePage> {
   Set<String> recentlySentUUIDs = new Set<String>();
   Map<String, String> selectedUUIDS = {};
 
+  Map<String, int> closerUUIDS = {};
+  Map<String, int> temp1UUIDS = {};
+  Map<String, int> temp2UUIDS = {};
+
   // Methods
   @override
   void initState() {
@@ -87,7 +91,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Send UUIDS to server on repeated intervals
-    _sendToServerTimer = new Timer.periodic(Duration(milliseconds: 10 ), (timer) {
+    _sendToServerTimer = new Timer.periodic(Duration(seconds: 7), (timer) {
       durationApproximation();
     });
   }
@@ -114,41 +118,39 @@ class _HomePageState extends State<HomePage> {
             body: json.encode(body))
         .then((response) async {
       final decoded = json.decode(response.body) as Map<String,int>;
+      print("probability");
+      print(decoded);
       setState(() {
         probabilities = decoded;
       });
-      if (probabilities.keys.isEmpty){
-        noDisease();
-      }
-      else{
-        showProbability(probabilities);
-      }
+      print(probabilities);
+      showProbability(probabilities);
     }).catchError((e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Can't connect to server")));
     });
   }
 
-  Future<void> noDisease() async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // user must tap button!
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: Text('Covid Infection Probability'),
-          content: Text('You are not at risk of any infection'),
-          actions: <Widget>[
-            TextButton(
-              child: Text('Close'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ],
-        );
-      },
-    );
-  }
+  //Future<void> noDisease() async {
+   // return showDialog<void>(
+   //   context: context,
+   //   barrierDismissible: false, // user must tap button!
+   //   builder: (BuildContext context) {
+    //    return AlertDialog(
+    //      title: Text('Covid Infection Probability'),
+    //      content: Text('You are not at risk of any infection'),
+    //      actions: <Widget>[
+    //        TextButton(
+    //          child: Text('Close'),
+    //          onPressed: () {
+    //            Navigator.of(context).pop();
+   //           },
+   //         ),
+   //       ],
+  //      );
+  //    },
+ //   );
+ // }
 
   Future<void> showProbability(Map<String,int> values) async {
     return showDialog<void>(
@@ -251,6 +253,7 @@ class _HomePageState extends State<HomePage> {
             body: json.encode(body))
         .then((response) async {
       final decoded = json.decode(response.body);
+      print("positive");
       print(decoded); //test
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Verified as Covid Positive")));
@@ -286,11 +289,15 @@ class _HomePageState extends State<HomePage> {
             headers: {"Content-Type": "application/json"},
             body: json.encode(body))
         .then((response) async {
-      final decoded = json.decode(response.body) as Map<String, int>;
+      final decoded = json.decode(response.body) as Map<String,int>;
+      print("police");
+      print(decoded);
       setState(() {
         probabilityList = decoded;
         recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
       });
+      print(probabilityList);
+      print(recentlySentUUIDs);
       Navigator.push(
           context,
           MaterialPageRoute(
@@ -304,44 +311,81 @@ class _HomePageState extends State<HomePage> {
 
   void durationApproximation() {
     int count = 1;
-    Map<String, int> closerUUIDS = {};
-    Map<String, int> temp1UUIDS = {};
-    Map<String, int> temp2UUIDS = {};
+    int res;
+    
 
-    for (MapEntry e in recentlyRecievedUUIDS.entries) {
-      if (e.value > -100) {
-        closerUUIDS[e.key] = count;
+    if (recentlyRecievedUUIDS.keys.isEmpty){
+      print("No connected devices");
+    }
+    else{
+      for (MapEntry e in recentlyRecievedUUIDS.entries) {
+        if (e.value > -100) {
+          closerUUIDS[e.key] = count;
+        }
+      }
+      print("closerUUIDS");
+      print(closerUUIDS);
+      if (temp1UUIDS.keys.isEmpty) {
+        temp1UUIDS = Map.from(closerUUIDS);
+        
+      } else if (temp2UUIDS.keys.isEmpty) {
+        for (MapEntry e in closerUUIDS.entries) {
+          if (temp1UUIDS.containsKey(e.key)) {
+            temp2UUIDS.putIfAbsent(e.key, () => (e.value)+count);
+          }
+        }
+        temp1UUIDS = Map.from(closerUUIDS);
+      } else {
+        for (MapEntry e in closerUUIDS.entries) {
+          if (temp2UUIDS.containsKey(e.key)) {
+            temp2UUIDS.update(e.key, (value) => value+count);
+          } else if (temp1UUIDS.containsKey(e.key)) {
+            temp2UUIDS.putIfAbsent(e.key, () => (e.value)+count);
+          }
+        }
+        temp1UUIDS = Map.from(closerUUIDS);
+        for (MapEntry e in temp2UUIDS.entries) {
+          if (!(closerUUIDS.containsKey(e.key))) {
+            setState(() {
+              selectedUUIDS.putIfAbsent(e.key, () => e.value.toString());
+            });
+            res = temp2UUIDS.remove(e.key);
+          }
+        }
+        print("duration");
+        print(res);
       }
     }
-    print(closerUUIDS);
-    if (temp1UUIDS.keys.isEmpty) {
-      temp1UUIDS = Map.from(closerUUIDS);
-    } else if (temp2UUIDS.keys.isEmpty) {
-      for (MapEntry e in closerUUIDS.entries) {
-        if (temp1UUIDS.containsKey(e.key)) {
-          temp2UUIDS[e.key] = (e.value) + count;
-        }
+    if (closerUUIDS.keys.isEmpty){
+      if (temp2UUIDS.keys.isEmpty){
+        return;
       }
-      temp1UUIDS = Map.from(closerUUIDS);
-    } else {
-      for (MapEntry e in closerUUIDS.entries) {
-        if (temp2UUIDS.containsKey(e.key)) {
-          temp2UUIDS[e.key] += count;
-        } else if (temp1UUIDS.containsKey(e.key)) {
-          temp2UUIDS[e.key] = (e.value) + count;
+      else{
+        for (MapEntry e in temp2UUIDS.entries){
+          selectedUUIDS.putIfAbsent(e.key, () => e.value.toString());
         }
+        temp2UUIDS = {};
       }
-      temp1UUIDS = Map.from(closerUUIDS);
+    }
+    else{
       for (MapEntry e in temp2UUIDS.entries) {
-        if (!(closerUUIDS.containsKey(e.key))) {
-          setState(() {
-            selectedUUIDS[e.key] = e.value.toString();
-          });
+      if (!(closerUUIDS.containsKey(e.key))) {
+        setState(() {
+          selectedUUIDS.putIfAbsent(e.key, () => e.value.toString());
+        });
+        res = temp2UUIDS.remove(e.key);
         }
-      }
     }
+    print("duration");
+    print(res.toString());
+    }
+    
+    closerUUIDS = {};
+    print("temp1UUIDS");
     print(temp1UUIDS);
+    print("temp2UUIDS");
     print(temp2UUIDS);
+    print("selectedUUIDS");
     print(selectedUUIDS);
     print("Trying to send CONTACT data");
     if (selectedUUIDS.keys.isEmpty) {
