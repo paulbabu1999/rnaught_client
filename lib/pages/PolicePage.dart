@@ -1,19 +1,13 @@
 import 'package:flutter/material.dart';
 
 class PolicePage extends StatefulWidget {
-  final Map<String, int> probabilityList;
+  final Map<String, dynamic> probabilityList;
   PolicePage({@required this.probabilityList});
   @override
   _PolicePageState createState() => _PolicePageState();
 }
 
 class _PolicePageState extends State<PolicePage> {
-  // Constants
-
-  // States
-
-  // Methods
-
   @override
   Widget build(BuildContext context) {
     return SafeArea(
@@ -27,15 +21,17 @@ class _PolicePageState extends State<PolicePage> {
           ),
           body: Center(
             child: Column(
-                mainAxisSize: MainAxisSize.max,
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
                     widget.probabilityList.entries
-                        .map((e) => e.key.toUpperCase() + "\t:\t" + e.value.toString())
+                        .map((e) =>
+                            e.key.toUpperCase() +
+                            "\t:-\n" +
+                            e.value.entries
+                                .map((e) => e.key + ":" + e.value.toString())
+                                .join(", "))
                         .join("\n"),
-                    style: TextStyle(fontSize: 14),
+                    style: TextStyle(fontSize: 16),
                   )
                 ]),
           )),

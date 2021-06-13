@@ -91,7 +91,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     // Send UUIDS to server on repeated intervals
-    _sendToServerTimer = new Timer.periodic(Duration(seconds: 7), (timer) {
+    _sendToServerTimer = new Timer.periodic(Duration(seconds: 30), (timer) {
       durationApproximation();
     });
   }
@@ -289,7 +289,7 @@ class _HomePageState extends State<HomePage> {
       final decoded = json.decode(response.body) as Map<String, dynamic>;
       print("police");
       print(decoded);
-      final Map<String, int> probabilityList = Map.from(decoded);
+      final Map<String, dynamic> probabilityList = Map.from(decoded);
       setState(() {
         recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
       });
@@ -300,10 +300,10 @@ class _HomePageState extends State<HomePage> {
           MaterialPageRoute(
               builder: (context) =>
                   PolicePage(probabilityList: probabilityList)));
-    }).catchError((e) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Can't connect to server")));
-    });
+    });//.catchError((e) {
+      //ScaffoldMessenger.of(context)
+        //  .showSnackBar(SnackBar(content: Text("Can't connect to server")));
+    //});
   }
 
   void durationApproximation() {
