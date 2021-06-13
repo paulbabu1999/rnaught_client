@@ -30,8 +30,8 @@ app=Flask(__name__)
 people={}
 id_new=0 
 driver = GraphDatabase.driver(
-  "bolt://107.22.134.61:7687",
-  auth=basic_auth("neo4j", "tube-spill-magazines"),max_connection_lifetime=200)
+  "bolt://3.238.138.75:7687",
+  auth=basic_auth("neo4j", "gloves-blueprint-badge"),max_connection_lifetime=200)
 
 def runquery(q):
   session=driver.session()
@@ -92,7 +92,7 @@ def five_level(user_id,virus_type):
     fr=runquery(q)[0]['labels(u)']
     temp=":".join(fr)
     temp="u:"+temp
-    q=f"match(u) where u.id='{user_id}' remove {temp} set u:Positive:{virus_type} set u.probability=1"
+    q=f"match(u) where u.id='{user_id}' remove {temp} set u:Positive:{virus_type}:Person set u.probability=1"
     runquery(q)
  
     
@@ -218,10 +218,12 @@ def new_contact():
         fr=session.run(query)
         fr= fr.data()
         if fr:
+            print("Inside if")
             fr=fr[0]['properties(r)']['contact_times']  
             fr=fr.split("\n")
             fr.append(f"{current_time()}:{duration}")
             contact_time_list="\n".join(fr)
+            print(contact_time_list)
             q="MATCH  (:Person {id:"+f"'{user_id}'"+"})-[r:contact]-(:Person {id:"+f"'{m}'"+"}) Set r.contact_times="+f"'{contact_time_list}'"
             session=driver.session()
             session.run(q)
@@ -242,11 +244,9 @@ def check_probability():
     data_recieved =request.data
     data_recieved=json.loads(data_recieved.decode("utf-8"))
     user_id=data_recieved['user_id']
-    
-    query=f"MATCH (n:Person) WHERE n.id='{user_id}' Return n.probability,labels(n)"
-    session=driver.session()
-    fr=session.run(query)
-    fr= fr.data()
+   
+    q="match(n{id:"+f"'{user_id}'"+"}) return n.probability,labels(n)" 
+    fr=runquery(q)
     virus_type={}
     if fr:
         fr=fr[0]
@@ -258,7 +258,7 @@ def check_probability():
 
             virus_type[i]=val
     if len(virus_type)==0:
-        virus_type={"No Infection":0}
+        virus_type={"No Infection": 0}
     print(virus_type)       
     return jsonify(virus_type)
     
@@ -292,18 +292,18 @@ def police():
      
     for i,j in connections.items():
         i = i.lower()
+        print(i)
         if int(j)>-100:
-            query=f"MATCH (a:Person) WHERE a.id='{i}' Return a.probability"
-            session=driver.session()
-            val=session.run(query) 
-            val=val.data()
+            query="match(n{id:"+f"'{i}'"+"}) return n.probability" 
+            val=runquery(query)
             if len(val)>0:
                 val=val[0] 
-                val=val["a.probability"]
+                val=val['n.probability']
                 val=int(val*100)
-                d[i]=val
+                d[i]=val 
+    print(d)            
     if len(d)==0:
-        d={"No Person Nearby":0}   
-    print(d)
+        d={"No Person Nearby": 0}   
+
     return jsonify(d)
 app.run(debug=True,host='0.0.0.0',port=5000)

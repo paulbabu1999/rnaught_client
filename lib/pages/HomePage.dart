@@ -106,7 +106,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void getProbability() {
-    Map<String,int> probabilities;
     Map body = {
       "user_id": userid,
     };
@@ -117,49 +116,52 @@ class _HomePageState extends State<HomePage> {
             headers: {"Content-Type": "application/json"},
             body: json.encode(body))
         .then((response) async {
-      final decoded = json.decode(response.body) as Map<String,int>;
+      final decoded = json.decode(response.body) as Map<String, dynamic>;
       print("probability");
       print(decoded);
-      setState(() {
-        probabilities = decoded;
-      });
+      final Map<String, int> probabilities = Map.from(decoded);
       print(probabilities);
-      showProbability(probabilities);
+      if (probabilities.containsKey("No Infection")) {
+        noDisease();
+      } else {
+        showProbability(probabilities);
+      }
     }).catchError((e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Can't connect to server")));
     });
   }
 
-  //Future<void> noDisease() async {
-   // return showDialog<void>(
-   //   context: context,
-   //   barrierDismissible: false, // user must tap button!
-   //   builder: (BuildContext context) {
-    //    return AlertDialog(
-    //      title: Text('Covid Infection Probability'),
-    //      content: Text('You are not at risk of any infection'),
-    //      actions: <Widget>[
-    //        TextButton(
-    //          child: Text('Close'),
-    //          onPressed: () {
-    //            Navigator.of(context).pop();
-   //           },
-   //         ),
-   //       ],
-  //      );
-  //    },
- //   );
- // }
-
-  Future<void> showProbability(Map<String,int> values) async {
+  Future<void> noDisease() async {
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text('Covid Infection Probability'),
-          content: Text('You have following chance of having each disease \n $values'),
+          content: Text('You are not at risk of any infection'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> showProbability(Map<String, int> values) async {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false, // user must tap button!
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Infection Probability'),
+          content: Text(
+              'You have following chance of having each disease: \n $values'),
           actions: <Widget>[
             TextButton(
               child: Text('Close'),
@@ -189,7 +191,7 @@ class _HomePageState extends State<HomePage> {
         barrierDismissible: false,
         builder: (context) {
           return AlertDialog(
-            title: Text('Covid Confirmation'),
+            title: Text('Infection Confirmation'),
             content: Column(
               children: [
                 TextField(
@@ -209,8 +211,7 @@ class _HomePageState extends State<HomePage> {
                     });
                   },
                   controller: verifyFieldController2,
-                  decoration:
-                      InputDecoration(hintText: "Enter the virus type"),
+                  decoration: InputDecoration(hintText: "Enter the virus type"),
                 ),
               ],
             ),
@@ -240,11 +241,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void sendVerificationToServer(String docCode, String typeVirus) {
-    Map body = {
-      "user_id": userid,
-      "code": docCode,
-      "virus_type": typeVirus
-    };
+    Map body = {"user_id": userid, "code": docCode, "virus_type": typeVirus};
     print("Sending VERIFICATION data to server");
     print(json.encode(body));
     http
@@ -255,8 +252,8 @@ class _HomePageState extends State<HomePage> {
       final decoded = json.decode(response.body);
       print("positive");
       print(decoded); //test
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text("Verified as Covid Positive")));
+      ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Verified as $typeVirus Positive")));
     }).catchError((e) {
       ScaffoldMessenger.of(context)
           .showSnackBar(SnackBar(content: Text("Can't connect to server")));
@@ -264,8 +261,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void othersProbability() {
-    Map<String, int> probabilityList = {};
-
     print("Trying to send POLICE data");
 
     Map<String, int> newConnections = Map.fromEntries(recentlyRecievedUUIDS
@@ -275,6 +270,8 @@ class _HomePageState extends State<HomePage> {
 
     if (newConnections.keys.isEmpty) {
       print("No data to send");
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text("No Person Nearby")));
       return;
     }
 
@@ -289,11 +286,11 @@ class _HomePageState extends State<HomePage> {
             headers: {"Content-Type": "application/json"},
             body: json.encode(body))
         .then((response) async {
-      final decoded = json.decode(response.body) as Map<String,int>;
+      final decoded = json.decode(response.body) as Map<String, dynamic>;
       print("police");
       print(decoded);
+      final Map<String, int> probabilityList = Map.from(decoded);
       setState(() {
-        probabilityList = decoded;
         recentlySentUUIDs = recentlyRecievedUUIDS.keys.toSet();
       });
       print(probabilityList);
@@ -312,12 +309,10 @@ class _HomePageState extends State<HomePage> {
   void durationApproximation() {
     int count = 1;
     int res;
-    
 
-    if (recentlyRecievedUUIDS.keys.isEmpty){
+    if (recentlyRecievedUUIDS.keys.isEmpty) {
       print("No connected devices");
-    }
-    else{
+    } else {
       for (MapEntry e in recentlyRecievedUUIDS.entries) {
         if (e.value > -100) {
           closerUUIDS[e.key] = count;
@@ -327,20 +322,19 @@ class _HomePageState extends State<HomePage> {
       print(closerUUIDS);
       if (temp1UUIDS.keys.isEmpty) {
         temp1UUIDS = Map.from(closerUUIDS);
-        
       } else if (temp2UUIDS.keys.isEmpty) {
         for (MapEntry e in closerUUIDS.entries) {
           if (temp1UUIDS.containsKey(e.key)) {
-            temp2UUIDS.putIfAbsent(e.key, () => (e.value)+count);
+            temp2UUIDS.putIfAbsent(e.key, () => (e.value) + count);
           }
         }
         temp1UUIDS = Map.from(closerUUIDS);
       } else {
         for (MapEntry e in closerUUIDS.entries) {
           if (temp2UUIDS.containsKey(e.key)) {
-            temp2UUIDS.update(e.key, (value) => value+count);
+            temp2UUIDS.update(e.key, (value) => value + count);
           } else if (temp1UUIDS.containsKey(e.key)) {
-            temp2UUIDS.putIfAbsent(e.key, () => (e.value)+count);
+            temp2UUIDS.putIfAbsent(e.key, () => (e.value) + count);
           }
         }
         temp1UUIDS = Map.from(closerUUIDS);
@@ -356,30 +350,28 @@ class _HomePageState extends State<HomePage> {
         print(res);
       }
     }
-    if (closerUUIDS.keys.isEmpty){
-      if (temp2UUIDS.keys.isEmpty){
+    if (closerUUIDS.keys.isEmpty) {
+      if (temp2UUIDS.keys.isEmpty) {
         return;
-      }
-      else{
-        for (MapEntry e in temp2UUIDS.entries){
+      } else {
+        for (MapEntry e in temp2UUIDS.entries) {
           selectedUUIDS.putIfAbsent(e.key, () => e.value.toString());
         }
         temp2UUIDS = {};
       }
-    }
-    else{
+    } else {
       for (MapEntry e in temp2UUIDS.entries) {
-      if (!(closerUUIDS.containsKey(e.key))) {
-        setState(() {
-          selectedUUIDS.putIfAbsent(e.key, () => e.value.toString());
-        });
-        res = temp2UUIDS.remove(e.key);
+        if (!(closerUUIDS.containsKey(e.key))) {
+          setState(() {
+            selectedUUIDS.putIfAbsent(e.key, () => e.value.toString());
+          });
+          res = temp2UUIDS.remove(e.key);
         }
+      }
+      print("duration");
+      print(res.toString());
     }
-    print("duration");
-    print(res.toString());
-    }
-    
+
     closerUUIDS = {};
     print("temp1UUIDS");
     print(temp1UUIDS);
@@ -397,7 +389,6 @@ class _HomePageState extends State<HomePage> {
   }
 
   void sendUUIDSToServer() {
-
     //Map location  = getMyCoordinates();
     String temperature = "10";
     String humidity = "Low";
@@ -417,7 +408,7 @@ class _HomePageState extends State<HomePage> {
             body: json.encode(body))
         .then((response) async {
       setState(() {
-        selectedUUIDS.clear();
+        selectedUUIDS = {};
       });
     }).catchError((e) {
       ScaffoldMessenger.of(context)
@@ -497,53 +488,66 @@ class _HomePageState extends State<HomePage> {
     else
       return SafeArea(
         child: Scaffold(
+            appBar: AppBar(
+              title: const Text(
+                "R-Naught",
+                style: TextStyle(color: Colors.white),
+              ),
+              backgroundColor: Colors.blue,
+            ),
             body: Center(
-          child: Column(
-              mainAxisSize: MainAxisSize.max,
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                if (isBluetoothOn != true)
-                  Column(
-                    children: [
-                      Icon(Icons.bluetooth, color: Colors.red, size: 30),
-                      Text("Please turn your bluetooth on"),
-                      SizedBox(height: 100)
-                    ],
-                  ),
-                if (isAdvertising == true)
-                  Column(
-                    children: [
-                      Icon(Icons.bluetooth, color: Colors.green, size: 30),
-                      Text("Your uid is visible to nearby phones"),
-                      SizedBox(height: 100)
-                    ],
-                  ),
-                ElevatedButton(
-                    onPressed: getProbability,
-                    child: Text("Get My Covid Probability")),
-                ElevatedButton(
-                  onPressed: iamCovidPositive,
-                  child: Text("Covid Verification (Doctors only)"),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.red, // background
-                    onPrimary: Colors.white, // foreground
-                  ),
-                ),
-                ElevatedButton(
-                  onPressed: othersProbability,
-                  child: Text("Probaility Verification (Officials only)"),
-                  style: ElevatedButton.styleFrom(
-                    primary: Colors.blueGrey, // background
-                    onPrimary: Colors.white, // foreground
-                  ),
-                ),
-                SizedBox(height: 30),
-                Text(recentlyRecievedUUIDS.entries
-                    .map((e) => e.key + "\t:\t" + e.value.toString())
-                    .join("\n"))
-              ]),
-        )),
+              child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (isBluetoothOn != true)
+                      Column(
+                        children: [
+                          Icon(Icons.bluetooth, color: Colors.red, size: 30),
+                          Text("Please turn your bluetooth on"),
+                          SizedBox(height: 100)
+                        ],
+                      ),
+                    if (isAdvertising == true)
+                      Column(
+                        children: [
+                          Icon(Icons.bluetooth, color: Colors.green, size: 30),
+                          Text("Your uid is visible to nearby phones"),
+                          SizedBox(height: 100)
+                        ],
+                      ),
+                    Column(
+                      children: [
+                        Text("Your ID: "+userid.toUpperCase()),
+                        Align(alignment: Alignment.topLeft),
+                      ],
+                    ),
+                    ElevatedButton(
+                        onPressed: getProbability,
+                        child: Text("Get My Infection Probability")),
+                    ElevatedButton(
+                      onPressed: iamCovidPositive,
+                      child: Text("Infection Verification (Doctors only)"),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.red, // background
+                        onPrimary: Colors.white, // foreground
+                      ),
+                    ),
+                    ElevatedButton(
+                      onPressed: othersProbability,
+                      child: Text("Probaility Verification (Officials only)"),
+                      style: ElevatedButton.styleFrom(
+                        primary: Colors.blueGrey, // background
+                        onPrimary: Colors.white, // foreground
+                      ),
+                    ),
+                    SizedBox(height: 30),
+                    Text(recentlyRecievedUUIDS.entries
+                        .map((e) => e.key + "\t:\t" + e.value.toString())
+                        .join("\n"))
+                  ]),
+            )),
       );
   }
 
