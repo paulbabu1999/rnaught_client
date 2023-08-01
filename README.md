@@ -1,14 +1,65 @@
-Nowfir:
- todo:
- get id from database everytime a new user joins
- get age and gender from user and send to backend along with id to create a node
- connect bluetooth and get location whenever new contact
- send contact time and location along with id to backend
- In case of positive corona send notification along with id to backend
-Paul:
- todo:
- Create and send back id to nowfir when requested
- Recieve everything send by nowfir, and make it in a form to add to neo4j
- 
- 
- 
+
+# RNaught Flutter App
+
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## Introduction
+
+RNaught is a contact tracing and infection prediction application developed to curb the spread of COVID-19. This repository contains the Flutter codebase for the RNaught mobile application.
+
+## Features
+
+- Efficient contact tracing using Bluetooth technology.
+- Intelligent infection prediction model based on contact duration, closeness, and frequency.
+- Seamless integration with the RNaught server-side API for data processing.
+
+## Screenshots
+
+_(Add some screenshots or GIFs showcasing your app)_
+
+## Installation
+
+1. Clone the repository:
+
+```bash
+git clone https://github.com/your-username/rnaught-flutter.git
+cd rnaught-flutter
+```
+
+2.  Run the app on your preferred device:
+
+`flutter run`
+
+## Configuration
+
+Before running the app, ensure that you have set up the RNaught server-side API and updated the API endpoint in `lib/constants.dart`.
+
+`const String apiBaseUrl = 'http://your-server-api-url/';`
+
+## Tech Stack
+
+-   Flutter: Cross-platform framework for building mobile applications.
+-   Dart: Programming language used by Flutter.
+
+
+## Contributors
+
+- [Nowfir](https://github.com/Nowfir)
+
+## Credit
+
+This project is built and maintained under the auspices of Mar Athanasius College of Engineering.
+
+## Contributing
+
+We welcome contributions to improve RNaught! If you find any issues or want to suggest improvements, please create a new issue or submit a pull request.
+
+Before submitting a pull request, make sure to:
+
+-   Test your changes thoroughly on both Android and iOS devices/emulators.
+-   Follow the Flutter best practices and coding style.
+-   Update the README and documentation as needed.
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](https://chat.openai.com/LICENSE) file for details.
