@@ -13,9 +13,9 @@ RNaught is a contact tracing and infection prediction application developed to c
 - Intelligent infection prediction model based on contact duration, closeness, and frequency.
 - Seamless integration with the RNaught server-side API for data processing.
 
-## Screenshots
 
-_(Add some screenshots or GIFs showcasing your app)_
+![image](https://github.com/paulbabu1999/rnaught_client/assets/33522991/ed11396c-867f-40cf-ae90-3117a26fc3f2)
+
 
 ## Installation
 
