@@ -8,6 +8,7 @@ import 'package:covid_19/Globals.dart' as Globals;
 
 class Home1 extends StatefulWidget {
   final int r;
+  
   Home1({@required this.r});
   @override
   _Home1State createState() => _Home1State();
