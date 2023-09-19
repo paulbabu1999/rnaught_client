@@ -4,7 +4,7 @@ import 'package:flutter_blue/flutter_blue.dart';
  
 void main() => runApp(MyApp());
  
-class MyApp extends StatelessWidget {
+class MyApp extends StatelessWidget  {
  @override
  Widget build(BuildContext context) => MaterialApp(
        title: 'BLE Demo',
